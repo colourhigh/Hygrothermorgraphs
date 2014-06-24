@@ -10,7 +10,9 @@ setInterval(function(){
 
 #include <SPI.h>
 #include <Ethernet.h>
+
 #define CHAR_MAX 100
+
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network:
 byte mac[] = {
@@ -28,10 +30,13 @@ byte subnet[]  = {
 EthernetServer server(80);
 
 int Pin3 = 3;
+int Pin2 = 2;
+char temperature[8];
+
 boolean Pin3ON = false;                  // Status flag
 void setup() {
   pinMode(Pin3, OUTPUT);
-
+  
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
@@ -43,6 +48,11 @@ void setup() {
   server.begin();
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
+  Serial.println("initialization done.");  
+
+  digitalWrite(Pin2, LOW);
+  pinMode(Pin2, INPUT); 
+  pinMode(15, INPUT);
 }
 
 int s_cmp(const char *a, const char *b)
@@ -72,6 +82,103 @@ int s_match(const char *a, const char *b){
         return count;
 }
 
+
+void OneWireReset (int Pin) // reset.  Should improve to act as a presence pulse
+{
+  digitalWrite (Pin, LOW);
+  pinMode (Pin, OUTPUT);        // bring low for 500 us
+  delayMicroseconds (500);
+  pinMode (Pin, INPUT);
+  delayMicroseconds (500);
+}
+
+void OneWireOutByte (int Pin, byte d) // output byte d (least sig bit first).
+{
+  byte n;
+
+  for (n=8; n!=0; n--)
+  {
+    if ((d & 0x01) == 1)  // test least sig bit
+    {
+      digitalWrite (Pin, LOW);
+      pinMode (Pin, OUTPUT);
+      delayMicroseconds (5);
+      pinMode (Pin, INPUT);
+      delayMicroseconds (60);
+    }
+    else
+    {
+      digitalWrite (Pin, LOW);
+      pinMode (Pin, OUTPUT);
+      delayMicroseconds (60);
+      pinMode (Pin, INPUT);
+    }
+
+    d = d>>1; // now the next bit is in the least sig bit position.
+  }
+}
+
+byte OneWireInByte (int Pin) // read byte, least sig byte first
+{
+  byte d, n, b;
+
+  for (n=0; n<8; n++)
+  {
+    digitalWrite (Pin, LOW);
+    pinMode (Pin, OUTPUT);
+    delayMicroseconds (5);
+    pinMode (Pin, INPUT);
+    delayMicroseconds (5);
+    b = digitalRead (Pin);
+    delayMicroseconds (50);
+    d = (d >> 1) | (b<<7); // shift d to right and insert b in most sig bit position
+  }
+  return (d);
+}
+
+void getCurrentTemp (char *temp)
+{
+  int HighByte, LowByte, TReading, Tc_100, sign, whole, fract;
+  int pos = 0;
+  OneWireReset (Pin2);
+  OneWireOutByte (Pin2, 0xcc);
+  OneWireOutByte (Pin2, 0x44); // perform temperature conversion, strong pullup for one sec
+
+  OneWireReset (Pin2);
+  OneWireOutByte (Pin2, 0xcc);
+  OneWireOutByte (Pin2, 0xbe);
+
+  LowByte = OneWireInByte (Pin2);
+  HighByte = OneWireInByte (Pin2);
+  TReading = (HighByte << 8) + LowByte;
+  sign = TReading & 0x8000;  // test most sig bit
+  if (sign) // negative
+  {
+    TReading = (TReading ^ 0xffff) + 1; // 2's comp
+  }
+  Tc_100 = (6 * TReading) + TReading / 4;    // multiply by (100 * 0.0625) or 6.25
+
+  whole = Tc_100 / 100;  // separate off the whole and fractional portions
+  fract = Tc_100 % 100;
+
+  if (sign) {
+    temp[pos++] = '-';
+  } else {
+    temp[pos++] = '+';
+  }
+
+  if (whole/100 != 0) {
+    temp[pos++] = whole/100+'0';
+  }
+
+  temp[pos++] = (whole-(whole/100)*100)/10 +'0' ;
+  temp[pos++] = whole-(whole/10)*10 +'0';
+  temp[pos++] = '.';
+  temp[pos++] = fract/10 +'0';
+  temp[pos++] = fract-(fract/10)*10 +'0';
+  temp[pos++] = '\0';
+}
+
 void processRequest(char *request){
     if(s_match(request, "output=on") >0 ){
       digitalWrite(Pin3, HIGH);
@@ -90,33 +197,18 @@ void sendBasePage(EthernetClient client){
     client.println("Content-Type: text/html");
     client.println("Connnection: close");
     client.println("");     // needed, for reasons    
-    client.print("<!DOCTYPE HTML>");
-    client.print("<html>");
-    client.print("<head>");
-    client.print("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");   
-
-    client.print("<title>WebLightSwitch</title>");
-    client.print("</head>");
-    client.print("<body bgcolor='#303030'>");
-    client.print("<style type='text/css'> .submit{width:230px; height:230px; text-indent: -99999px; text-align: center; background-color: Transparent; border:none;}</style>");
-    client.print("<style type='text/css'> #switch{width:539px; height:248px;}</style>");
-    client.print("<style type='text/css'> *{margin:auto; text-align:center;}</style>");
-    client.print("<body><br><br><br><br><br><br>");
-    //client.print("<div id='title'> <img src='https://dl.dropboxusercontent.com/u/155411/test/name_title.jpg' width='539' height='112' alt='Web Light Switch' /> </div> <br>");
-    client.print("<div id='switch'>");
-    client.print("<table width='539' height='248' border='0'> <tr>");
-    client.print("<td width='265'><form method=get><input type=submit class='submit' name='output' value='off'></form></td>");
-    client.print("<td width='264'><form method=get><input type=submit class='submit' name='output' value='on'></form></td></tr>");
-    client.print("</table> </div>");
-    client.print("<script src='http://code.jquery.com/jquery-1.11.1.min.js'></script>");
-    client.print("</body>");
-    client.print("</html>");
-    if (Pin3ON) {
-      client.print("<style type='text/css'>#switch{ background-image:url(https://dl.dropboxusercontent.com/u/155411/test/switch_on.jpg);}</style>");
-    } 
-    else {
-      client.print("<style type='text/css'>#switch{ background-image:url(https://dl.dropboxusercontent.com/u/155411/test/switch_off.jpg);}</style>");
-    }     
+    client.println("<!DOCTYPE HTML>");
+    client.println("<html>");
+    client.println("<head>");
+    client.println("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");
+    client.println("<script src='http://code.jquery.com/jquery-1.11.1.min.js'></script>");
+    client.println("<script src='http://localhost:8000/main.js'></script>");    
+    client.println("<title>Hygrothermograph</title>");
+    client.println("</head>");
+    client.println("<body>");
+    client.println("<div id='main'></div>");
+    client.println("</body>");
+    client.println("</html>");
 }
 
 void sendAjaxPage(EthernetClient client){
@@ -124,12 +216,18 @@ void sendAjaxPage(EthernetClient client){
     client.println("Content-Type: application/json");
     client.println("Connnection: close");
     client.println("");
+    getCurrentTemp(temperature);
+    Serial.println(temperature);
+    client.print("{\"state\":\"");
     if (Pin3ON) {    
-      client.println("{\"state\": \"on\"}");  
+       client.print("on\""); 
     }
     else{
-      client.println("{\"state\": \"off\"}"); 
+      client.print("off\"");
     }
+    client.print(",\"temperature\":\"");
+    client.print(temperature);
+    client.print("\"}");
 }
 
 void sendResponse(char* request, EthernetClient client){
