@@ -3,8 +3,9 @@ $(document).ready(function() {
     var coil_state;
     var position = 0;
     var timeout;
-    var data = [];
     var waiting;
+    var program = [];
+    var pc = 0;
 
     var update = function(state) {
         var xhr;
@@ -32,27 +33,18 @@ $(document).ready(function() {
     }
 
     function loop() {
-        while ((position < data.length) && ['on', 'off'].indexOf(data[position][0]) === -1) {
-            if (waiting) waiting.remove();
-            output.append($('<div/>').text('Bad Line').css({
-                color: 'red'
-            }));
-            position++;
+        switch (program[pc++]) {
+            case "on":
+                send(true);
+                timeout = setTimeout(loop, program[pc++]);
+                break;
+            case "off":
+                send(false);
+                timeout = setTimeout(loop, program[pc++]);
+                break;
+            case "stop":
+                break;
         }
-        if (position < data.length) {
-            send(data[position][0] === 'on');
-        }
-        if (position < data.length - 1) {
-            timeout = setTimeout(function() {
-                loop();
-            }, data[position][1] * 1000)
-            waiting = $('<div/>').text('Waiting...').css({
-                color: 'blue'
-            }).appendTo(output);
-        } else {
-            console.log('End of input');
-        }
-        position++;
     }
 
     function start() {
@@ -76,15 +68,58 @@ $(document).ready(function() {
     function load() {
         pause();
         reset();
-        textarea.val(localStorage['commands']).trigger('change');
+        textarea.val(localStorage['commands']);
+        input_update();
+    }
 
+    function input_update() {
+
+        var textLines = textarea.val().trim().split(/\r*\n/).length;
+        textarea.height(textLines * 17 + 40);
+        output.height(textLines * 17 + 40);
+        line_numbers.height(textLines * 17 + 40);
+        var nums = [];
+        for (var i = 0; i < textLines + 1; i++) {
+            nums.push(i + 1);
+        }
+        line_numbers.html(nums.join('<br/>'));
+
+        parse();
     }
 
     function parse() {
-        data = textarea.val().split(/\r*\n/).map(function(line) {
-            var parts = line.replace(/^\s+|\s+$/g).split(/ +/);
-            return [parts[0], parts[1] | 0];
+        program = [];
+        var status = [];
+        var lines = textarea.val().split(/\r*\n/);
+        var error = false;
+        lines.forEach(function(line) {
+            var tokens = line.replace(/^\s+|\s+$/g).split(/ +/);
+            var num;
+            switch (tokens[0]) {
+                case 'on':
+                case 'off':
+                    program.push(tokens[0]);
+                    num = parseFloat(tokens[1]);
+                    if (!Number.isNaN(num)) {
+                        program.push(tokens[1] * 1000);
+                        status.push('');
+                    } else {
+                        status.push('error');
+                        error = true;
+                    }
+                    break;
+                case '':
+                    status.push('');
+                    break;
+                default:
+                    status.push('error');
+                    error = true;
+            }
         });
+        lines.push('stop');
+        if (error) {
+            output.html(status.join('<br/>'));
+        }
 
     }
 
@@ -183,6 +218,20 @@ $(document).ready(function() {
         })
         .appendTo('body');
 
+    var line_numbers = $('<div/>')
+        .css({
+            width: '40px',
+            height: '100%',
+            backgroundColor: '#efefef',
+            padding: '6px',
+            fontSize: '17px',
+            fontFamily: 'monospace',
+            lineHeight: '17px',
+            float: 'left',
+            border: '1px solid #A9A9A9',
+            borderWidth: '1px 0 1px 1px'
+        })
+        .appendTo(pane);
     var textarea = $('<textarea/>')
         .css({
             width: '30%',
@@ -194,12 +243,7 @@ $(document).ready(function() {
             resize: 'none',
             border: '1px solid #A9A9A9'
         })
-        .on('keyup', function() {
-            var textLines = $(this).val().trim().split(/\r*\n/).length;
-            $(this).height(textLines * 17 + 40);
-            $('.output_state').height(textLines * 17 + 40);
-            parse();
-        })
+        .on('keyup', input_update)
         .appendTo(pane);
 
     var output = $('<div/>')
