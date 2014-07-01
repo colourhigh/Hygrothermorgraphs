@@ -1,10 +1,10 @@
 $(document).ready(function() {
-
     var coil_state;
     var position = 0;
     var timeout;
     var waiting;
     var program = [];
+    var stack = [];
     var pc = 0;
 
     var update = function(state) {
@@ -27,22 +27,41 @@ $(document).ready(function() {
     function send(state) {
         if (waiting) waiting.remove();
         update(state);
-        output.append($('<div/>').text('Sent').css({
-            color: 'green'
-        }));
+        var nums = [];
+        for (var i = 0; i < pc / 2; i++) {
+            nums.push('');
+        }
+        nums.push('here');
+        output.html(nums.join('<br/>'));;
     }
 
     function loop() {
+        console.log(pc, program[pc]);
         switch (program[pc++]) {
+
             case "on":
                 send(true);
-                timeout = setTimeout(loop, program[pc++]);
+                timeout = setTimeout(loop, program[pc++] * 1000);
                 break;
             case "off":
                 send(false);
-                timeout = setTimeout(loop, program[pc++]);
+                timeout = setTimeout(loop, program[pc++] * 1000);
+                break;
+            case "func":
+                while (program[pc++] !== 'end') {}
+                loop();
+                break;
+            case "goto":
+                stack.push(pc + 1);
+                pc = program[pc];
+                loop();
+                break;
+            case "end":
+                pc = stack.pop();
+                loop();
                 break;
             case "stop":
+                output.html('finished');
                 break;
         }
     }
@@ -57,7 +76,8 @@ $(document).ready(function() {
     }
 
     function reset() {
-        position = 0;
+        pc = 0;
+        stak = [];
         output.html('');
     }
 
@@ -73,7 +93,6 @@ $(document).ready(function() {
     }
 
     function input_update() {
-
         var textLines = textarea.val().trim().split(/\r*\n/).length;
         textarea.height(textLines * 17 + 40);
         output.height(textLines * 17 + 40);
@@ -83,28 +102,49 @@ $(document).ready(function() {
             nums.push(i + 1);
         }
         line_numbers.html(nums.join('<br/>'));
-
         parse();
     }
 
     function parse() {
         program = [];
         var status = [];
+        var funcs = [];
         var lines = textarea.val().split(/\r*\n/);
         var error = false;
         lines.forEach(function(line) {
-            var tokens = line.replace(/^\s+|\s+$/g).split(/ +/);
+            var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
             var num;
             switch (tokens[0]) {
                 case 'on':
                 case 'off':
+                case 'push':
+                case 'pop':
                     program.push(tokens[0]);
                     num = parseFloat(tokens[1]);
                     if (!Number.isNaN(num)) {
-                        program.push(tokens[1] * 1000);
+                        program.push(tokens[1]);
                         status.push('');
                     } else {
-                        status.push('error');
+                        status.push('error, bad number');
+                        error = true;
+                    }
+                    break;
+                case 'func':
+                    program.push(tokens[0]);
+                    funcs[tokens[1]] = program.length;
+                    status.push('');
+                    break;
+                case 'end':
+                    program.push(tokens[0]);
+                    status.push('');
+                    break;
+                case 'call':
+                    program.push('goto');
+                    if (funcs[tokens[1]]) {
+                        program.push(funcs[tokens[1]]);
+                        status.push('');
+                    } else {
+                        status.push('error, bad function call');
                         error = true;
                     }
                     break;
@@ -116,7 +156,8 @@ $(document).ready(function() {
                     error = true;
             }
         });
-        lines.push('stop');
+        program.push('stop');
+        console.log(program);
         if (error) {
             output.html(status.join('<br/>'));
         }
