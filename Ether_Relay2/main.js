@@ -175,8 +175,6 @@ $(document).ready(function() {
         output.html(status.join('<br/>'));
     }
 
-
-
     $('<div/>')
         .attr({
             'class': 'status'
@@ -317,7 +315,5 @@ $(document).ready(function() {
 
     textarea.trigger('keyup')
 
-
-    update();
     update();
 });
