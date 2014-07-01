@@ -6,6 +6,7 @@ $(document).ready(function() {
     var program = [];
     var stack = [];
     var pc = 0;
+    var source_map = [];
 
     var update = function(state) {
         var xhr;
@@ -28,7 +29,7 @@ $(document).ready(function() {
         if (waiting) waiting.remove();
         update(state);
         var nums = [];
-        for (var i = 0; i < pc / 2; i++) {
+        for (var i = 0; i < source_map[pc]; i++) {
             nums.push('');
         }
         nums.push('here');
@@ -110,10 +111,12 @@ $(document).ready(function() {
         var status = [];
         var funcs = [];
         var lines = textarea.val().split(/\r*\n/);
-        var error = false;
-        lines.forEach(function(line) {
+
+        lines.forEach(function(line, i) {
+            var start_length = program.length;
             var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
             var num;
+            var error = '';
             switch (tokens[0]) {
                 case 'on':
                 case 'off':
@@ -123,45 +126,38 @@ $(document).ready(function() {
                     num = parseFloat(tokens[1]);
                     if (!Number.isNaN(num)) {
                         program.push(tokens[1]);
-                        status.push('');
                     } else {
-                        status.push('error, bad number');
-                        error = true;
+                        error = 'error, bad number';
                     }
                     break;
                 case 'func':
                     program.push(tokens[0]);
                     funcs[tokens[1]] = program.length;
-                    status.push('');
                     break;
                 case 'end':
                     program.push(tokens[0]);
-                    status.push('');
                     break;
                 case 'call':
                     program.push('goto');
                     if (funcs[tokens[1]]) {
                         program.push(funcs[tokens[1]]);
-                        status.push('');
                     } else {
-                        status.push('error, bad function call');
-                        error = true;
+                        error = 'error, bad function call';
                     }
                     break;
                 case '':
-                    status.push('');
                     break;
                 default:
-                    status.push('error');
-                    error = true;
+                    error = "error, unknown"
+            }
+            status.push(error);
+            for (var k = 0; k < program.length - start_length; k++) {
+                source_map.push(i);
             }
         });
         program.push('stop');
         console.log(program);
-        if (error) {
-            output.html(status.join('<br/>'));
-        }
-
+        output.html(status.join('<br/>'));
     }
 
 
