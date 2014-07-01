@@ -137,7 +137,7 @@ $(document).ready(function() {
                     program.push(tokens[0]);
                     num = parseFloat(tokens[1]);
                     if (!Number.isNaN(num)) {
-                        program.push(tokens[1]);
+                        program.push(num);
                     } else {
                         error = 'error, bad number';
                     }
