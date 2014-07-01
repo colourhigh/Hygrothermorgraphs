@@ -14,9 +14,10 @@ Current language supports the following:
     end
     call test1
     call test2
+    tween 1 10 14 30 100
 
-And a silly hacked version of source mapping (is just the pc/2, so not quite right).
-
-
-Next will add conditionals, inc, decr and loops, and probably a source map.  
-Then add easing.  Then make a graphical front end for script.  
+-------------------
+Last updates:
+* Added functions
+* Added source maps for debugging and current position
+* Added tween, generates code for on1, on2, off1, off2, number_steps

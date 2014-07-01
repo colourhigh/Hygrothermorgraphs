@@ -25,14 +25,14 @@ $(document).ready(function() {
         })
     };
 
-    function send(state) {
+    function send(state, delay) {
         if (waiting) waiting.remove();
         update(state);
         var nums = [];
         for (var i = 0; i < source_map[pc]; i++) {
             nums.push('');
         }
-        nums.push('here');
+        nums.push('here, ' + (state ? 'on' : 'off') + ': waiting ' + delay.toFixed(2));
         output.html(nums.join('<br/>'));;
     }
 
@@ -41,11 +41,11 @@ $(document).ready(function() {
         switch (program[pc++]) {
 
             case "on":
-                send(true);
+                send(true, program[pc]);
                 timeout = setTimeout(loop, program[pc++] * 1000);
                 break;
             case "off":
-                send(false);
+                send(false, program[pc]);
                 timeout = setTimeout(loop, program[pc++] * 1000);
                 break;
             case "func":
@@ -106,6 +106,18 @@ $(document).ready(function() {
         parse();
     }
 
+    function tween(on1, off1, on2, off2, steps) {
+        var program = [];
+
+        for (var i = 0; i < steps; i++) {
+            program.push('on');
+            program.push(on1 * 1 + (on2 - on1) / steps * i);
+            program.push('off');
+            program.push(off1 * 1 + (off2 - off1) / steps * i);
+        }
+        return program;
+    }
+
     function parse() {
         program = [];
         var status = [];
@@ -144,6 +156,9 @@ $(document).ready(function() {
                     } else {
                         error = 'error, bad function call';
                     }
+                    break;
+                case 'tween':
+                    [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
                     break;
                 case '':
                     break;
@@ -303,5 +318,6 @@ $(document).ready(function() {
     textarea.trigger('keyup')
 
 
+    update();
     update();
 });
