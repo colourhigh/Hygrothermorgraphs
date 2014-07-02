@@ -49,7 +49,7 @@ $(document).ready(function() {
                 timeout = setTimeout(loop, program[pc++] * 1000);
                 break;
             case "func":
-                while (program[pc++] !== 'end') {}
+                while (program[pc++] !== 'end' && pc < program.length) {}
                 loop();
                 break;
             case "goto":
@@ -63,6 +63,7 @@ $(document).ready(function() {
                 break;
             case "stop":
                 output.html('finished');
+                pc = 0;
                 break;
         }
     }
@@ -106,16 +107,27 @@ $(document).ready(function() {
         parse();
     }
 
-    function tween(on1, off1, on2, off2, steps) {
-        var program = [];
+    function getFloat(input) {
+        var float = parseFloat(input);
+        if (Number.isNaN(float)) {
+            throw 'error, bad number';
+        }
+        return float;
+    }
 
+    function tween(on1, off1, on2, off2, steps) {
+        on1 = getFloat(on1);
+        on2 = getFloat(on2);
+        off1 = getFloat(off1);
+        off2 = getFloat(off2);
+        steps = getFloat(steps);
         for (var i = 0; i < steps; i++) {
             program.push('on');
-            program.push(on1 * 1 + (on2 - on1) / steps * i);
+            console.log(on1, (on2 - on1), steps, i, i);
+            program.push(on1 + (on2 - on1) / steps * i);
             program.push('off');
-            program.push(off1 * 1 + (off2 - off1) / steps * i);
+            program.push(off1 + (off2 - off1) / steps * i);
         }
-        return program;
     }
 
     function parse() {
@@ -128,52 +140,66 @@ $(document).ready(function() {
             var start_length = program.length;
             var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
             var num;
-            var error = '';
-            switch (tokens[0]) {
-                case 'on':
-                case 'off':
-                case 'push':
-                case 'pop':
-                    program.push(tokens[0]);
-                    num = parseFloat(tokens[1]);
-                    if (!Number.isNaN(num)) {
+            try {
+                switch (tokens[0]) {
+                    case 'on':
+                    case 'off':
+                    case 'push':
+                    case 'pop':
+                        program.push(tokens[0]);
+                        num = getFloat(tokens[1]);
                         program.push(num);
-                    } else {
-                        error = 'error, bad number';
-                    }
-                    break;
-                case 'func':
-                    program.push(tokens[0]);
-                    funcs[tokens[1]] = program.length;
-                    break;
-                case 'end':
-                    program.push(tokens[0]);
-                    break;
-                case 'call':
-                    program.push('goto');
-                    if (funcs[tokens[1]]) {
-                        program.push(funcs[tokens[1]]);
-                    } else {
-                        error = 'error, bad function call';
-                    }
-                    break;
-                case 'tween':
-                    [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
-                    break;
-                case '':
-                    break;
-                default:
-                    error = "error, unknown"
+                        break;
+                    case 'func':
+                        program.push(tokens[0]);
+                        funcs[tokens[1]] = program.length;
+                        break;
+                    case 'end':
+                        program.push(tokens[0]);
+                        break;
+                    case 'call':
+                        program.push('goto');
+                        if (funcs[tokens[1]]) {
+                            program.push(funcs[tokens[1]]);
+                        } else {
+                            throw 'error, bad function call';
+                        }
+                        break;
+                    case 'loop':
+                        var count = getFloat(tokens[2]) | 0;
+                        for (var j = 0; j < count; j++) {
+                            program.push('goto');
+                            if (funcs[tokens[1]]) {
+                                program.push(funcs[tokens[1]]);
+                            } else {
+                                throw 'error, bad function call';
+                            }
+                        }
+                        break;
+                    case 'tween':
+                        [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
+                        break;
+                    case '':
+                        break;
+                    default:
+                        throw "error, unknown"
+                }
+                for (var k = 0; k < program.length - start_length; k++) {
+                    source_map.push(i);
+                }
+                status.push('');
+            } catch (error) {
+                status.push(error);
             }
-            status.push(error);
-            for (var k = 0; k < program.length - start_length; k++) {
-                source_map.push(i);
-            }
+
+
         });
         program.push('stop');
         console.log(program);
         output.html(status.join('<br/>'));
     }
+
+
 
     $('<div/>')
         .attr({
@@ -314,6 +340,7 @@ $(document).ready(function() {
         .appendTo(pane);
 
     textarea.trigger('keyup')
+
 
     update();
 });
