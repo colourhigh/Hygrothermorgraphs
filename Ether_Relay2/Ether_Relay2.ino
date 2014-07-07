@@ -202,6 +202,7 @@ void sendBasePage(EthernetClient client){
     client.println("<head>");
     client.println("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");
     client.println("<script src='http://code.jquery.com/jquery-1.11.1.min.js'></script>");
+    client.println("<script src='http://d3js.org/d3.v3.min.js'></script>");
     client.println("<script src='http://localhost:8000/main.js'></script>");    
     client.println("<title>Hygrothermograph</title>");
     client.println("</head>");

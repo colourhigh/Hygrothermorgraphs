@@ -1,4 +1,136 @@
 $(document).ready(function() {
+    var coords = [];
+    var width = 700;
+    var height = 200;
+    var margin = {
+        top: 30,
+        right: 30,
+        bottom: 30,
+        left: 30
+    };
+
+
+    var lineFunc = d3.svg.line()
+        .x(function(d) {
+
+            return d.x;
+        })
+        .y(function(d) {
+            return d.y;
+        })
+        .interpolate("linear");
+
+    var xAxis = d3.svg.axis()
+        .scale(d3.scale.linear().range([0, width]))
+        .orient("bottom")
+        .ticks(5);
+    var yAxis = d3.svg.axis()
+        .scale(d3.scale.linear().range([height, 0]))
+        .orient("left")
+        .ticks(5);
+
+    var update_draw = function() {
+        coords = [];
+        d3.selectAll('.point')
+            .each(function(c) {
+                coords.push({
+                    x: this.x,
+                    y: this.y
+                });
+            });
+        coords.sort(function(a, b) {
+            return a.x - b.x;
+        });
+        svgContainer.selectAll('.path')
+            .data([coords]) // set the new data
+        .attr("d", lineFunc)
+    }
+
+    var click = function() {
+        if (d3.event.defaultPrevented) return;
+        var point = d3.mouse(this),
+            p = {
+                x: point[0],
+                y: point[1]
+            }
+        svgContainer.append("circle")
+            .attr("transform", "translate(" + p.x + "," + p.y + ")")
+            .attr("r", "6")
+            .attr('class', 'point')
+            .attr("stroke", "blue")
+            .attr("stroke-width", 1)
+            .attr("fill", "#3388ff")
+            .property({
+                x: p.x,
+                y: p.y
+            })
+            .style("cursor", "pointer")
+            .call(drag);
+        update_draw();
+    }
+
+
+
+    var svgContainer = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .style('padding', 30)
+        .on('click', click)
+
+
+    svgContainer.selectAll('.path')
+        .data([
+            []
+        ])
+        .enter().append('path')
+        .attr('class', 'path')
+        .attr('d', lineFunc)
+        .attr("stroke", "blue")
+        .attr("stroke-width", 2)
+        .attr("fill", "none");
+    svgContainer.append("g")
+        .attr("transform", "translate(0," + (height) + ")")
+        .attr({
+            fill: 'none',
+            stroke: 'black'
+        }).call(xAxis).selectAll('text')
+        .attr({
+            fill: 'black',
+            stroke: 'none'
+        });
+
+    svgContainer.append("g")
+        .attr("transform", "translate(0, " + 0 + ")")
+        .attr({
+            fill: 'none',
+            stroke: 'black'
+        }).call(yAxis).selectAll('text')
+        .attr({
+            fill: 'black',
+            stroke: 'none'
+        })
+
+
+    var drag = d3.behavior.drag()
+        .on("drag", dragmove);
+
+    function dragmove(d) {
+        var d3this = d3.select(this)
+        var index = d3this.attr('index') | 0;
+        var x = d3.event.x;
+        var y = d3.event.y;
+        d3this.attr("transform", "translate(" + x + "," + y + ")")
+            .property({
+                x: x,
+                y: y
+            });
+        update_draw();
+    }
+
+
+
+
     var coil_state;
     var position = 0;
     var timeout;
@@ -49,7 +181,7 @@ $(document).ready(function() {
                 timeout = setTimeout(loop, program[pc++] * 1000);
                 break;
             case "func":
-                while (program[pc++] !== 'end') {}
+                while (program[pc++] !== 'end' && pc < program.length) {}
                 loop();
                 break;
             case "goto":
@@ -63,6 +195,7 @@ $(document).ready(function() {
                 break;
             case "stop":
                 output.html('finished');
+                pc = 0;
                 break;
         }
     }
@@ -106,16 +239,27 @@ $(document).ready(function() {
         parse();
     }
 
-    function tween(on1, off1, on2, off2, steps) {
-        var program = [];
+    function getFloat(input) {
+        var float = parseFloat(input);
+        if (Number.isNaN(float)) {
+            throw 'error, bad number';
+        }
+        return float;
+    }
 
+    function tween(on1, off1, on2, off2, steps) {
+        on1 = getFloat(on1);
+        on2 = getFloat(on2);
+        off1 = getFloat(off1);
+        off2 = getFloat(off2);
+        steps = getFloat(steps);
         for (var i = 0; i < steps; i++) {
             program.push('on');
-            program.push(on1 * 1 + (on2 - on1) / steps * i);
+            console.log(on1, (on2 - on1), steps, i, i);
+            program.push(on1 + (on2 - on1) / steps * i);
             program.push('off');
-            program.push(off1 * 1 + (off2 - off1) / steps * i);
+            program.push(off1 + (off2 - off1) / steps * i);
         }
-        return program;
     }
 
     function parse() {
@@ -128,52 +272,66 @@ $(document).ready(function() {
             var start_length = program.length;
             var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
             var num;
-            var error = '';
-            switch (tokens[0]) {
-                case 'on':
-                case 'off':
-                case 'push':
-                case 'pop':
-                    program.push(tokens[0]);
-                    num = parseFloat(tokens[1]);
-                    if (!Number.isNaN(num)) {
+            try {
+                switch (tokens[0]) {
+                    case 'on':
+                    case 'off':
+                    case 'push':
+                    case 'pop':
+                        program.push(tokens[0]);
+                        num = getFloat(tokens[1]);
                         program.push(num);
-                    } else {
-                        error = 'error, bad number';
-                    }
-                    break;
-                case 'func':
-                    program.push(tokens[0]);
-                    funcs[tokens[1]] = program.length;
-                    break;
-                case 'end':
-                    program.push(tokens[0]);
-                    break;
-                case 'call':
-                    program.push('goto');
-                    if (funcs[tokens[1]]) {
-                        program.push(funcs[tokens[1]]);
-                    } else {
-                        error = 'error, bad function call';
-                    }
-                    break;
-                case 'tween':
-                    [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
-                    break;
-                case '':
-                    break;
-                default:
-                    error = "error, unknown"
+                        break;
+                    case 'func':
+                        program.push(tokens[0]);
+                        funcs[tokens[1]] = program.length;
+                        break;
+                    case 'end':
+                        program.push(tokens[0]);
+                        break;
+                    case 'call':
+                        program.push('goto');
+                        if (funcs[tokens[1]]) {
+                            program.push(funcs[tokens[1]]);
+                        } else {
+                            throw 'error, bad function call';
+                        }
+                        break;
+                    case 'loop':
+                        var count = getFloat(tokens[2]) | 0;
+                        for (var j = 0; j < count; j++) {
+                            program.push('goto');
+                            if (funcs[tokens[1]]) {
+                                program.push(funcs[tokens[1]]);
+                            } else {
+                                throw 'error, bad function call';
+                            }
+                        }
+                        break;
+                    case 'tween':
+                        [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
+                        break;
+                    case '':
+                        break;
+                    default:
+                        throw "error, unknown"
+                }
+                for (var k = 0; k < program.length - start_length; k++) {
+                    source_map.push(i);
+                }
+                status.push('');
+            } catch (error) {
+                status.push(error);
             }
-            status.push(error);
-            for (var k = 0; k < program.length - start_length; k++) {
-                source_map.push(i);
-            }
+
+
         });
         program.push('stop');
         console.log(program);
         output.html(status.join('<br/>'));
     }
+
+
 
     $('<div/>')
         .attr({
@@ -220,7 +378,6 @@ $(document).ready(function() {
     var button_bar = $('<div/>')
         .addClass('buttons')
         .css({
-            width: '100%',
             padding: '10px'
         })
         .appendTo('body');
@@ -314,6 +471,7 @@ $(document).ready(function() {
         .appendTo(pane);
 
     textarea.trigger('keyup')
+
 
     update();
 });
