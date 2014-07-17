@@ -1,7 +1,7 @@
 $(document).ready(function() {
  
-
 	var temp_map = [
+        [1.0, 0.1, 20],
 		[16.75, 1.2, 4],
 		[25.1, 1, 4],
 		[37.2, 2, 2],
@@ -53,7 +53,6 @@ $(document).ready(function() {
 
     function loop(next, send) {
         switch (program[pc++]) {
-
             case "on":
                 send(true, program[pc]);
                 timeout = next(loop.bind(null, next, send), program[pc++] * 1000);
@@ -108,6 +107,7 @@ $(document).ready(function() {
         input_update();
     }
 
+    
     function run_sim(callback, timeout){
     	simulation.push(timeout);
     	callback();
@@ -226,7 +226,7 @@ $(document).ready(function() {
                     	var pair1 = getTemp(getFloat(tokens[1]));
                     	var pair2 = getTemp(getFloat(tokens[2]));
                     	var duration = getFloat(tokens[3])*60;  
-                    	var ave_duration = (pair1[0]+pair2[0])/2 + (pair1[1]-pair2[1])/2;
+                    	var ave_duration = Math.abs(pair1[0]+pair2[0])/2 + Math.abs(pair1[1]-pair2[1])/2;
                     	[].push.apply(program, tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration));
                     	break;
                     case '':
@@ -246,7 +246,7 @@ $(document).ready(function() {
         });
         program.push('stop');
         console.log(program);
-	pc = 0;        
+		pc = 0;        
         output.html(status.join('<br/>'));
     }
 
