@@ -246,8 +246,7 @@ $(document).ready(function() {
         });
         program.push('stop');
         console.log(program);
-        loop(run_sim, sim_send);
-		pc = 0;        
+	pc = 0;        
         output.html(status.join('<br/>'));
     }
 
