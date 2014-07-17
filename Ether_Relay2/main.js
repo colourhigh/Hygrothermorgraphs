@@ -1,5 +1,6 @@
 $(document).ready(function() {
  
+
 	var temp_map = [
 		[16.75, 1.2, 4],
 		[25.1, 1, 4],
@@ -216,7 +217,8 @@ $(document).ready(function() {
                     	var pair = getTemp(getFloat(tokens[1]));
                     	var duration = getFloat(tokens[2])*60;                 	
                     	var length = pair[0] + pair[1];
-                    	for(; length < duration; length+=length){
+                        console.log(length, duration)
+                    	for(var n=0; n < duration; n+=length){
                     		[].push.apply(program, ['on', pair[0], 'off', pair[1]]);
                     	}
                     	break;
@@ -533,6 +535,7 @@ $(document).ready(function() {
     	return duration;
 
     } */
+
 
 
 });
