@@ -9,15 +9,67 @@ $(document).ready(function() {
 		[44.0, 4, 2]
 	];
 
+    var alphabet = {
+        A: {
+            low: function(machine){
+
+                return 'low'
+            }
+        },
+        H: {
+            low: function(machine){
+
+                return 'low'
+            },
+            high: function(machine){
+
+                return 'high'
+            }
+        },
+        L: {
+            low: function(machine){
+
+                return 'low'
+            },
+            high: function(machine){
+
+                return 'high'
+            }
+        }
+    }
+
+    var Machine = function(){
+        this.pc = 0;
+        this.program = [];
+        this.stack = [];
+        this.source_map = [];
+    }
+
+    Machine.prototype.clone = function(){
+        var m = new Machine();
+        m.program = this.program.slice();
+        m.source_map = this.source_map.slice();
+        return m;
+    }
+
+    Machine.prototype.tween = function(on1, off1, on2, off2, steps) {
+        on1 = getFloat(on1);
+        on2 = getFloat(on2);
+        off1 = getFloat(off1);
+        off2 = getFloat(off2);
+        steps = getFloat(steps);
+        for (var i = 0; i < steps; i++) {
+            this.program.push('on');
+            this.program.push(on1 + (on2 - on1) / steps * i);
+            this.program.push('off');
+            this.program.push(off1 + (off2 - off1) / steps * i);
+        }
+    }
+
     var coil_state;
-    var position = 0;
     var timeout;
     var waiting;
-    var program = [];
-    var stack = [];
-    var pc = 0;
-    var source_map = [];
-
+    var machine = new Machine();
 
     var update = function(state) {
         var xhr;
@@ -36,74 +88,68 @@ $(document).ready(function() {
         })
     };
 
-    function send(state, delay) {
+    function send(state, delay, machine) {
         if (waiting) waiting.remove();
         update(state);
         var nums = [];
-        for (var i = 0; i < source_map[pc]; i++) {
+        for (var i = 0; i < machine.source_map[machine.pc]; i++) {
             nums.push('');
         }
         nums.push('here, ' + (state ? 'on' : 'off') + ': waiting ' + delay.toFixed(2));
         output.html(nums.join('<br/>'));;
     }
 
-    function run(next, send, def) {
-        if(!def){
-            def = $.Deferred();
-        }
+    function run(send, machine) {
         loop:
-        while(def.state() !== 'resolved'){
-            switch (program[pc++]) {
+        while(machine.def.state() !== 'resolved'){
+            switch (machine.program[machine.pc++]) {
                 case "on":
-                    send(true, program[pc]);
-                    timeout = next(loop.bind(null, next, send, def), program[pc++] * 1000);
+                    send(true, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
                     break loop;
                 case "off":
-                    send(false, program[pc]);
-                    timeout = next(loop.bind(null, next, send, def), program[pc++] * 1000);
+                    send(false, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null,  send, machine), machine.program[machine.pc++] * 1000);
                     break loop;
                 case "func":
-                    while (program[pc++] !== 'end' && pc < program.length) {}
+                    while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
                     break;
                 case "goto":
-                    stack.push(pc + 1);
-                    pc = program[pc];
+                    machine.stack.push(machine.pc + 1);
+                    machine.pc = machine.program[machine.pc];
                     break;
                 case "end":
-                    pc = stack.pop();
+                    machine.pc = machine.stack.pop();
                     break;
                 case "stop":
-                    pc = 0;
-                    def.resolve();
+                    machine.pc = 0;
+                    machine.def.resolve();
             }
         }
-        return def.promise();
     }
 
-    function simulate(program) {
+    function simulate(machine) {
         var simulation = [];
-        var stack = [];
-        var pc = 0;
         finished = false;
         while(!finished){
-            switch (program[pc++]) {
+            switch (machine.program[machine.pc++]) {
                 case "on":
                     simulation.push('on');
-                    simulation.push(program[pc++] * 1000);
+                    simulation.push(machine.program[machine.pc++] * 1000);
                     break;
                 case "off":
                     simulation.push('off');
-                    simulation.push(program[pc++] * 1000);
+                    simulation.push(machine.program[machine.pc++] * 1000);
                     break;
                 case "func":
-                    while (program[pc++] !== 'end' && pc < program.length) {}
+                    while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
                     break;
                 case "goto":
-                    stack.push(pc + 1);
-                    pc = program[pc];
+                    machine.stack.push(machine.pc + 1);
+                    machine.pc = machine.program[machine.pc];
                     break;
                 case "end":
-                    pc = stack.pop();
+                    machine.pc = machine.stack.pop();
                     break;
                 case "stop":
                 default:
@@ -114,19 +160,21 @@ $(document).ready(function() {
     }
 
     function start() {
-        run(setTimeout, send)
-            .then(function(){
-                output.html('finished');
-            });
+        machine.def = $.Deferred();
+        machine.def
+        .then(function(){
+            output.html('finished');
+        });
+        run(send, machine)
     }
 
     function pause() {
-        clearTimeout(timeout);
+        clearTimeout(machine.timeout);
     }
 
     function reset() {
-        pc = 0;
-        stack = [];
+        machine.pc = 0;
+        machine.stack = [];
         output.html('');
     }
 
@@ -141,10 +189,6 @@ $(document).ready(function() {
         input_update();
     }
 
-    function sim_send(state){
-    	simulation.push(state);
-    }
-
     function input_update() {
         var textLines = textarea.val().trim().split(/\r*\n/).length;
         textarea.height(textLines * 17 + 40);
@@ -155,6 +199,7 @@ $(document).ready(function() {
             nums.push(i + 1);
         }
         line_numbers.html(nums.join('<br/>'));
+        pause();
         parse();
     }
 
@@ -164,20 +209,6 @@ $(document).ready(function() {
             throw 'error, bad number';
         }
         return float;
-    }
-
-    function tween(on1, off1, on2, off2, steps) {
-        on1 = getFloat(on1);
-        on2 = getFloat(on2);
-        off1 = getFloat(off1);
-        off2 = getFloat(off2);
-        steps = getFloat(steps);
-        for (var i = 0; i < steps; i++) {
-            program.push('on');
-            program.push(on1 + (on2 - on1) / steps * i);
-            program.push('off');
-            program.push(off1 + (off2 - off1) / steps * i);
-        }
     }
 
     function getTemp(temp){
@@ -191,13 +222,12 @@ $(document).ready(function() {
 
 
     function parse() {
-        program = [];
-        simulation = [];
+        machine = new Machine();
         var status = [];
         var funcs = [];
         var lines = textarea.val().split(/\r*\n/);
         lines.forEach(function(line, i) {
-            var start_length = program.length;
+            var start_length = machine.program.length;
             var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
             var num;
             try {
@@ -206,21 +236,21 @@ $(document).ready(function() {
                     case 'off':
                     case 'push':
                     case 'pop':
-                        program.push(tokens[0]);
+                        machine.program.push(tokens[0]);
                         num = getFloat(tokens[1]);
-                        program.push(num);
+                        machine.program.push(num);
                         break;
                     case 'func':
-                        program.push(tokens[0]);
-                        funcs[tokens[1]] = program.length;
+                        machine.program.push(tokens[0]);
+                        funcs[tokens[1]] = machine.program.length;
                         break;
                     case 'end':
-                        program.push(tokens[0]);
+                        machine.program.push(tokens[0]);
                         break;
                     case 'call':
-                        program.push('goto');
+                        machine.program.push('goto');
                         if (funcs[tokens[1]]) {
-                            program.push(funcs[tokens[1]]);
+                            machine.program.push(funcs[tokens[1]]);
                         } else {
                             throw 'error, bad function call';
                         }
@@ -228,24 +258,23 @@ $(document).ready(function() {
                     case 'loop':
                         var count = getFloat(tokens[2]) | 0;
                         for (var j = 0; j < count; j++) {
-                            program.push('goto');
+                            machine.program.push('goto');
                             if (funcs[tokens[1]]) {
-                                program.push(funcs[tokens[1]]);
+                                machine.program.push(funcs[tokens[1]]);
                             } else {
                                 throw 'error, bad function call';
                             }
                         }
                         break;
                     case 'tween':
-                        [].push.apply(program, tween.apply(null, tokens.slice(1, tokens.length)));
+                        machine.tween.apply(machine, tokens.slice(1, tokens.length));
                         break;
                     case 'temp':
                     	var pair = getTemp(getFloat(tokens[1]));
                     	var duration = getFloat(tokens[2])*60;
                     	var length = pair[0] + pair[1];
-                        console.log(length, duration)
                     	for(var n=0; n < duration; n+=length){
-                    		[].push.apply(program, ['on', pair[0], 'off', pair[1]]);
+                    		[].push.apply(machine.program, ['on', pair[0], 'off', pair[1]]);
                     	}
                     	break;
                     case 'temp_tween':
@@ -253,26 +282,25 @@ $(document).ready(function() {
                     	var pair2 = getTemp(getFloat(tokens[2]));
                     	var duration = getFloat(tokens[3])*60;
                     	var ave_duration = Math.abs(pair1[0]+pair2[0])/2 + Math.abs(pair1[1]-pair2[1])/2;
-                    	[].push.apply(program, tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration));
+                    	machine.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration);
                     	break;
                     case '':
                         break;
                     default:
                         throw "error, unknown"
                 }
-                for (var k = 0; k < program.length - start_length; k++) {
-                    source_map.push(i);
+                for (var k = 0; k < machine.program.length - start_length; k++) {
+                    machine.source_map.push(i);
                 }
                 status.push('');
             } catch (error) {
                 status.push(error);
             }
         });
-        program.push('stop');
-        console.log(program);
-		pc = 0;
+        machine.program.push('stop');
+        console.log(machine.program);
         output.html(status.join('<br/>'));
-        console.log(simulate(program));
+        console.log(simulate(machine.clone()));
     }
 
 
