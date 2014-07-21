@@ -1,11 +1,11 @@
 $(document).ready(function() {
- 
+
 	var temp_map = [
         [1.0, 0.1, 20],
 		[16.75, 1.2, 4],
 		[25.1, 1, 4],
 		[37.2, 2, 2],
-		[38.7, 3, 4],	
+		[38.7, 3, 4],
 		[44.0, 4, 2]
 	];
 
@@ -74,7 +74,7 @@ $(document).ready(function() {
                 pc = stack.pop();
                 loop(next, send);
                 break;
-            case "stop":          
+            case "stop":
                 output.html('finished');
                 pc = 0;
                 break;
@@ -107,11 +107,11 @@ $(document).ready(function() {
         input_update();
     }
 
-    
+
     function run_sim(callback, timeout){
     	simulation.push(timeout);
     	callback();
-    }	
+    }
 
     function sim_send(state){
     	simulation.push(state);
@@ -215,7 +215,7 @@ $(document).ready(function() {
                         break;
                     case 'temp':
                     	var pair = getTemp(getFloat(tokens[1]));
-                    	var duration = getFloat(tokens[2])*60;                 	
+                    	var duration = getFloat(tokens[2])*60;
                     	var length = pair[0] + pair[1];
                         console.log(length, duration)
                     	for(var n=0; n < duration; n+=length){
@@ -225,7 +225,7 @@ $(document).ready(function() {
                     case 'temp_tween':
                     	var pair1 = getTemp(getFloat(tokens[1]));
                     	var pair2 = getTemp(getFloat(tokens[2]));
-                    	var duration = getFloat(tokens[3])*60;  
+                    	var duration = getFloat(tokens[3])*60;
                     	var ave_duration = Math.abs(pair1[0]+pair2[0])/2 + Math.abs(pair1[1]-pair2[1])/2;
                     	[].push.apply(program, tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration));
                     	break;
@@ -246,7 +246,7 @@ $(document).ready(function() {
         });
         program.push('stop');
         console.log(program);
-		pc = 0;        
+		pc = 0;
         output.html(status.join('<br/>'));
     }
 
@@ -391,150 +391,7 @@ $(document).ready(function() {
 
     textarea.trigger('keyup')
 
-
     update();
-
-
-   /* var coords = [];
-    var width = 700;
-    var height = 200;
-    var margin = {
-        top: 30,
-        right: 30,
-        bottom: 30,
-        left: 30
-    };
-
-
-    var lineFunc = d3.svg.line()
-        .x(function(d) {
-
-            return d.x;
-        })
-        .y(function(d) {
-            return d.y;
-        })
-        .interpolate("linear");
-
-    var xAxis = d3.svg.axis()
-        .scale(d3.scale.linear().range([0, width]))
-        .orient("bottom")
-        .ticks(5);
-    var yAxis = d3.svg.axis()
-        .scale(d3.scale.linear().range([height, 0]))
-        .orient("left")
-        .ticks(5);
-
-    var update_draw = function() {
-        coords = [];
-        d3.selectAll('.point')
-            .each(function(c) {
-                coords.push({
-                    x: this.x,
-                    y: this.y
-                });
-            });
-        coords.sort(function(a, b) {
-            return a.x - b.x;
-        });
-        svgContainer.selectAll('.path')
-            .data([coords]) // set the new data
-        .attr("d", lineFunc)
-    }
-
-    var click = function() {
-        if (d3.event.defaultPrevented) return;
-        var point = d3.mouse(this),
-            p = {
-                x: point[0],
-                y: point[1]
-            }
-        svgContainer.append("circle")
-            .attr("transform", "translate(" + p.x + "," + p.y + ")")
-            .attr("r", "6")
-            .attr('class', 'point')
-            .attr("stroke", "blue")
-            .attr("stroke-width", 1)
-            .attr("fill", "#3388ff")
-            .property({
-                x: p.x,
-                y: p.y
-            })
-            .style("cursor", "pointer")
-            .call(drag);
-        update_draw();
-    }
-
-
-
-    var svgContainer = d3.select("body")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .style('padding', 30)
-        .on('click', click)
-
-
-    svgContainer.selectAll('.path')
-        .data([
-            []
-        ])
-        .enter().append('path')
-        .attr('class', 'path')
-        .attr('d', lineFunc)
-        .attr("stroke", "blue")
-        .attr("stroke-width", 2)
-        .attr("fill", "none");
-    svgContainer.append("g")
-        .attr("transform", "translate(0," + (height) + ")")
-        .attr({
-            fill: 'none',
-            stroke: 'black'
-        }).call(xAxis).selectAll('text')
-        .attr({
-            fill: 'black',
-            stroke: 'none'
-        });
-
-    svgContainer.append("g")
-        .attr("transform", "translate(0, " + 0 + ")")
-        .attr({
-            fill: 'none',
-            stroke: 'black'
-        }).call(yAxis).selectAll('text')
-        .attr({
-            fill: 'black',
-            stroke: 'none'
-        })
-
-
-    var drag = d3.behavior.drag()
-        .on("drag", dragmove);
-
-    function dragmove(d) {
-        var d3this = d3.select(this)
-        var index = d3this.attr('index') | 0;
-        var x = d3.event.x;
-        var y = d3.event.y;
-        d3this.attr("transform", "translate(" + x + "," + y + ")")
-            .property({
-                x: x,
-                y: y
-            });
-        update_draw();
-    }
-
-    var draw_sim = function(){
-    	var duration = simulation.reduce(function(memo, num) {
-    		if(!Number.isNaN(Number.parseInt(num))){
-    			return num + memo;
-    		}
-    		return memo;
-    	}, 0);
-    	return duration;
-
-    } */
-
 
 
 });
