@@ -9,9 +9,6 @@ $(document).ready(function() {
 		[44.0, 4, 2]
 	];
 
-
-
-
     var coil_state;
     var position = 0;
     var timeout;
@@ -20,7 +17,6 @@ $(document).ready(function() {
     var stack = [];
     var pc = 0;
     var source_map = [];
-    var simulation = [];
 
 
     var update = function(state) {
@@ -51,39 +47,77 @@ $(document).ready(function() {
         output.html(nums.join('<br/>'));;
     }
 
-    function loop(next, send) {
-        switch (program[pc++]) {
-            case "on":
-                send(true, program[pc]);
-                timeout = next(loop.bind(null, next, send), program[pc++] * 1000);
-                break;
-            case "off":
-                send(false, program[pc]);
-                timeout = next(loop.bind(null, next, send), program[pc++] * 1000);
-                break;
-            case "func":
-                while (program[pc++] !== 'end' && pc < program.length) {}
-                loop(next, send);
-                break;
-            case "goto":
-                stack.push(pc + 1);
-                pc = program[pc];
-                loop(next, send);
-                break;
-            case "end":
-                pc = stack.pop();
-                loop(next, send);
-                break;
-            case "stop":
-                output.html('finished');
-                pc = 0;
-                break;
+    function run(next, send, def) {
+        if(!def){
+            def = $.Deferred();
         }
+        loop:
+        while(def.state() !== 'resolved'){
+            switch (program[pc++]) {
+                case "on":
+                    send(true, program[pc]);
+                    timeout = next(loop.bind(null, next, send, def), program[pc++] * 1000);
+                    break loop;
+                case "off":
+                    send(false, program[pc]);
+                    timeout = next(loop.bind(null, next, send, def), program[pc++] * 1000);
+                    break loop;
+                case "func":
+                    while (program[pc++] !== 'end' && pc < program.length) {}
+                    break;
+                case "goto":
+                    stack.push(pc + 1);
+                    pc = program[pc];
+                    break;
+                case "end":
+                    pc = stack.pop();
+                    break;
+                case "stop":
+                    pc = 0;
+                    def.resolve();
+            }
+        }
+        return def.promise();
+    }
+
+    function simulate(program) {
+        var simulation = [];
+        var stack = [];
+        var pc = 0;
+        finished = false;
+        while(!finished){
+            switch (program[pc++]) {
+                case "on":
+                    simulation.push('on');
+                    simulation.push(program[pc++] * 1000);
+                    break;
+                case "off":
+                    simulation.push('off');
+                    simulation.push(program[pc++] * 1000);
+                    break;
+                case "func":
+                    while (program[pc++] !== 'end' && pc < program.length) {}
+                    break;
+                case "goto":
+                    stack.push(pc + 1);
+                    pc = program[pc];
+                    break;
+                case "end":
+                    pc = stack.pop();
+                    break;
+                case "stop":
+                default:
+                    finished = true;
+            }
+        }
+        return simulation;
     }
 
     function start() {
-        loop(setTimeout, send);
-
+        run(setTimeout, send)
+            .then(function(){
+                output.html('finished');
+            });
     }
 
     function pause() {
@@ -92,7 +126,7 @@ $(document).ready(function() {
 
     function reset() {
         pc = 0;
-        stak = [];
+        stack = [];
         output.html('');
     }
 
@@ -105,12 +139,6 @@ $(document).ready(function() {
         reset();
         textarea.val(localStorage['commands']);
         input_update();
-    }
-
-
-    function run_sim(callback, timeout){
-    	simulation.push(timeout);
-    	callback();
     }
 
     function sim_send(state){
@@ -146,7 +174,6 @@ $(document).ready(function() {
         steps = getFloat(steps);
         for (var i = 0; i < steps; i++) {
             program.push('on');
-            //console.log(on1, (on2 - on1), steps, i, i);
             program.push(on1 + (on2 - on1) / steps * i);
             program.push('off');
             program.push(off1 + (off2 - off1) / steps * i);
@@ -154,7 +181,6 @@ $(document).ready(function() {
     }
 
     function getTemp(temp){
-
     	for(var i=0; i < temp_map.length; i++){
     		if(temp_map[i][0] > temp){
     			return [temp_map[Math.max(i-1, 0)][1], temp_map[Math.max(i-1, 0)][2]];
@@ -241,13 +267,12 @@ $(document).ready(function() {
             } catch (error) {
                 status.push(error);
             }
-
-
         });
         program.push('stop');
         console.log(program);
 		pc = 0;
         output.html(status.join('<br/>'));
+        console.log(simulate(program));
     }
 
 
