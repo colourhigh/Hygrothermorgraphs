@@ -9,33 +9,61 @@ $(document).ready(function() {
 		[44.0, 4, 2]
 	];
 
+
+
     var alphabet = {
         A: {
             low: function(machine){
-
-                return 'low'
+                machine.temp(0, 20);
+                machine.temp_tween(0, 50, 40);
+                machine.temp(50, 20);
+                machine.temp_tween(50, 0, 40);
+                machine.temp(0, 20);
+                return 'low';
             }
         },
         H: {
             low: function(machine){
-
-                return 'low'
+                machine.temp(0, 20);
+                machine.temp(50, 5);
+                machine.temp(35, 50);
+                machine.temp(50, 5);
+                machine.temp(0, 20);
+                return 'low';
             },
             high: function(machine){
-
-                return 'high'
+                machine.temp(50, 20);
+                machine.temp(0, 15);
+                machine.temp(35, 50);
+                machine.temp(0, 15);
+                machine.temp(50, 20);
+                return 'high';
             }
         },
         L: {
             low: function(machine){
-
-                return 'low'
+                machine.temp(0, 20);
+                machine.temp(50, 15);
+                machine.temp(0, 15);
+                return 'low';
             },
             high: function(machine){
-
-                return 'high'
+                machine.temp(50, 2);
+                machine.temp(0, 15);
+                machine.temp(50, 25);
+                return 'high';
             }
         }
+    }
+
+
+    function getTemp(temp){
+        for(var i=0; i < temp_map.length; i++){
+            if(temp_map[i][0] > temp){
+                return [temp_map[Math.max(i-1, 0)][1], temp_map[Math.max(i-1, 0)][2]];
+            }
+        }
+        return [temp_map[temp_map.length-1][1], temp_map[temp_map.length-1][2]];
     }
 
     var Machine = function(){
@@ -64,6 +92,24 @@ $(document).ready(function() {
             this.program.push('off');
             this.program.push(off1 + (off2 - off1) / steps * i);
         }
+    }
+
+    Machine.prototype.temp = function(temp, duration) {
+        duration *= 60;
+        var pair = getTemp(temp);
+        var length = pair[0] + pair[1];
+        for(var i=0; i < duration; i+=length){
+            [].push.apply(this.program, ['on', pair[0], 'off', pair[1]]);
+        }
+    }
+
+    Machine.prototype.temp_tween = function(temp1, temp2, duration){
+        duration *=60;
+         var pair1 = getTemp(temp1);
+        var pair2 = getTemp(temp2);
+        var ave_duration = (Math.abs(pair1[0]+pair1[1])/2 + Math.abs(pair2[0]+pair2[1])/2);
+        // tween is responsible for most of the error in timing
+        machine.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration);
     }
 
     var coil_state;
@@ -130,15 +176,18 @@ $(document).ready(function() {
 
     function simulate(machine) {
         var simulation = [];
+        machine.duration = 0;
         finished = false;
         while(!finished){
             switch (machine.program[machine.pc++]) {
                 case "on":
                     simulation.push('on');
+                    machine.duration += machine.program[machine.pc];
                     simulation.push(machine.program[machine.pc++] * 1000);
                     break;
                 case "off":
                     simulation.push('off');
+                    machine.duration += machine.program[machine.pc];
                     simulation.push(machine.program[machine.pc++] * 1000);
                     break;
                 case "func":
@@ -156,7 +205,7 @@ $(document).ready(function() {
                     finished = true;
             }
         }
-        return simulation;
+        return machine;
     }
 
     function start() {
@@ -186,10 +235,10 @@ $(document).ready(function() {
         pause();
         reset();
         textarea.val(localStorage['commands']);
-        input_update();
+        inputUpdate();
     }
 
-    function input_update() {
+    function inputUpdate() {
         var textLines = textarea.val().trim().split(/\r*\n/).length;
         textarea.height(textLines * 17 + 40);
         output.height(textLines * 17 + 40);
@@ -211,13 +260,10 @@ $(document).ready(function() {
         return float;
     }
 
-    function getTemp(temp){
-    	for(var i=0; i < temp_map.length; i++){
-    		if(temp_map[i][0] > temp){
-    			return [temp_map[Math.max(i-1, 0)][1], temp_map[Math.max(i-1, 0)][2]];
-    		}
-    	}
-    	return [temp_map[temp_map.length-1][1], temp_map[temp_map.length-1][2]];
+    function formatDuration(seconds){
+        var hours = parseInt( seconds / 3600, 10);
+        var minutes = parseInt( seconds / 60, 10) % 60;
+        return hours + ' hours ' + minutes + ' minutes ' + (seconds%60).toFixed(1) + ' seconds';
     }
 
 
@@ -226,6 +272,7 @@ $(document).ready(function() {
         var status = [];
         var funcs = [];
         var lines = textarea.val().split(/\r*\n/);
+        var errored = false;
         lines.forEach(function(line, i) {
             var start_length = machine.program.length;
             var tokens = line.replace(/^\s+|\s+$/g, '').split(/ +/);
@@ -270,20 +317,30 @@ $(document).ready(function() {
                         machine.tween.apply(machine, tokens.slice(1, tokens.length));
                         break;
                     case 'temp':
-                    	var pair = getTemp(getFloat(tokens[1]));
-                    	var duration = getFloat(tokens[2])*60;
-                    	var length = pair[0] + pair[1];
-                    	for(var n=0; n < duration; n+=length){
-                    		[].push.apply(machine.program, ['on', pair[0], 'off', pair[1]]);
-                    	}
-                    	break;
+                        machine.temp(getFloat(tokens[1]), getFloat(tokens[2]));
+                        break;
                     case 'temp_tween':
-                    	var pair1 = getTemp(getFloat(tokens[1]));
-                    	var pair2 = getTemp(getFloat(tokens[2]));
-                    	var duration = getFloat(tokens[3])*60;
-                    	var ave_duration = Math.abs(pair1[0]+pair2[0])/2 + Math.abs(pair1[1]-pair2[1])/2;
-                    	machine.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration);
+                        machine.temp_tween(getFloat(tokens[1]), getFloat(tokens[2]),  getFloat(tokens[3]));
                     	break;
+                    case 'letter':
+                        var letter = tokens[1].toUpperCase();
+                        if(!alphabet[letter]){
+                            throw 'unknown letter';
+                        }
+                        (alphabet[letter].low || alphabet[letter].high)(machine);
+                        break;
+                    case 'word':
+                        var position = 'low'
+                        tokens[1].toUpperCase().split('').map(function(letter){
+                            if(!alphabet[letter]){
+                                throw 'unknown letter';
+                            }
+                            if(!alphabet[letter][position]){
+                                throw 'unknown letter position';
+                            }
+                            alphabet[letter][position](machine);
+                        });
+                        break;
                     case '':
                         break;
                     default:
@@ -294,13 +351,19 @@ $(document).ready(function() {
                 }
                 status.push('');
             } catch (error) {
+                errored = true;
                 status.push(error);
             }
         });
         machine.program.push('stop');
         console.log(machine.program);
         output.html(status.join('<br/>'));
-        console.log(simulate(machine.clone()));
+        if(!errored){
+            var duration = formatDuration(simulate(machine.clone()).duration);
+            console.log('Total duration: ', duration);
+            output.append(duration);
+        }
+
     }
 
 
@@ -422,7 +485,7 @@ $(document).ready(function() {
             resize: 'none',
             border: '1px solid #A9A9A9'
         })
-        .on('keyup', input_update)
+        .on('keyup', inputUpdate)
         .appendTo(pane);
 
     var output = $('<div/>')
