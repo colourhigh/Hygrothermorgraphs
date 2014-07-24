@@ -1,12 +1,4 @@
-// basic js idea: 
-/*
-var state = false; 
-setInterval(function(){ 
-  state = !state;
-  $.get('/ajax?output=' + (state ? 'on' : 'off')).done(function(data){ console.log(data.state); }); 
-}, 1000);
 
-*/
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -17,26 +9,38 @@ setInterval(function(){
 // The IP address will be dependent on your local network:
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte ip[]  = { 
-  10, 1, 1, 125 };                  
-byte gateway[] = { 
-  10, 1, 1, 1 };                
-byte subnet[]  = { 
+byte ip[]  = {
+  10, 1, 1, 125 };
+byte gateway[] = {
+  10, 1, 1, 1 };
+byte subnet[]  = {
   255, 255, 255, 0 };
 
 // Initialize the Ethernet server library
-// with the IP address and port you want to use 
+// with the IP address and port you want to use
 // (port 80 is default for HTTP):
 EthernetServer server(80);
 
-int Pin3 = 3;
+int S1 = 1;
+int S2 = 4;
+int S3 = 16;
+int S1_HEAT = S1;
+int S1_COOL = S1<<1;
+int S2_HEAT = S2;
+int S2_COOL = S2<<1
+int S3_HEAT = S3;
+int S3_COOL = S3<<1;
+
+
+
+int RELAY = 1;
 int Pin2 = 2;
 char temperature[8];
 
-boolean Pin3ON = false;                  // Status flag
+boolean RELAYSTATE = 0;                  // Status flag
 void setup() {
-  pinMode(Pin3, OUTPUT);
-  
+  pinMode(RELAY, OUTPUT);
+
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
@@ -48,10 +52,10 @@ void setup() {
   server.begin();
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
-  Serial.println("initialization done.");  
+  Serial.println("initialization done.");
 
   digitalWrite(Pin2, LOW);
-  pinMode(Pin2, INPUT); 
+  pinMode(Pin2, INPUT);
   pinMode(15, INPUT);
 }
 
@@ -65,8 +69,8 @@ int s_cmp(const char *a, const char *b)
         }
         return 0;
 }
- 
- 
+
+
 int s_match(const char *a, const char *b){
         int i = 0, count = 0;
         while (a[i] != '\0') {
@@ -180,30 +184,41 @@ void getCurrentTemp (char *temp)
 }
 
 void processRequest(char *request){
-    if(s_match(request, "output=on") >0 ){
-      digitalWrite(Pin3, HIGH);
-      Serial.println("Pin 3 on!");
-      Pin3ON = true;
+    int s = S1;
+    if(s_match(request, "s=2") >0 ){
+      s = S2;
     }
-    if(s_match(request, "output=off") >0 ){ 
-      digitalWrite(Pin3, LOW);
-      Serial.println("Pin 3 off!");
-      Pin3ON = false;
-    }      
+    if(s_match(request, "s=3") >0 ){
+      s = S3;
+    }
+    if(s_match(request, "heat=on") >0 ){
+        RELAYSTATE |= s;
+    }
+    if(s_match(request, "heat=off") >0 ){
+      RELAYSTATE &= ~s;
+    }
+    if(s_match(request, "cool=on") >0 ){
+        RELAYSTATE |= (s<<1);
+    }
+    if(s_match(request, "cool=off") >0 ){
+      RELAYSTATE &= ~(s<<1);
+    }
+
+    digitalWrite(RELAY, RELAYSTATE)
 }
 
 void sendBasePage(EthernetClient client){
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: text/html");
     client.println("Connnection: close");
-    client.println("");     // needed, for reasons    
+    client.println("");     // needed, for reasons
     client.println("<!DOCTYPE HTML>");
     client.println("<html>");
     client.println("<head>");
     client.println("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");
     client.println("<script src='http://code.jquery.com/jquery-1.11.1.min.js'></script>");
     client.println("<script src='http://d3js.org/d3.v3.min.js'></script>");
-    client.println("<script src='http://localhost:8000/main.js'></script>");    
+    client.println("<script src='http://localhost:8000/main.js'></script>");
     client.println("<title>Hygrothermograph</title>");
     client.println("</head>");
     client.println("<body>");
@@ -219,16 +234,23 @@ void sendAjaxPage(EthernetClient client){
     client.println("");
     getCurrentTemp(temperature);
     Serial.println(temperature);
-    client.print("{\"state\":\"");
-    if (Pin3ON) {    
-       client.print("on\""); 
+    client.print("{\"state\":{\"heat\":\"");
+    if (RELAYON & S1) {
+       client.print("on\"");
+    }
+    else{
+      client.print("off\"");
+    }
+    client.print(",\"cool\":\"");
+    if (RELAYON & (S1<<2)) {
+       client.print("on\"");
     }
     else{
       client.print("off\"");
     }
     client.print(",\"temperature\":\"");
     client.print(temperature);
-    client.print("\"}");
+    client.print("\"}}");
 }
 
 void sendResponse(char* request, EthernetClient client){
@@ -237,7 +259,7 @@ void sendResponse(char* request, EthernetClient client){
    }
    else{
       sendBasePage(client);
-   } 
+   }
 
 }
 
@@ -248,20 +270,20 @@ void loop() {
     char request[CHAR_MAX];
     int pos = 0;
     Serial.println("new client");
-    boolean finished = false;    
+    boolean finished = false;
     while (client.connected() && !finished) {
       if (client.available()) {
         char c = client.read();
         Serial.write(c);
         if(pos < CHAR_MAX -1){
-           request[pos++] = c; 
+           request[pos++] = c;
         }
         if (c == '\n') {
           request[pos] = '\0';
           Serial.println("Input read");
           Serial.println(request);
-          processRequest(request);         
-          sendResponse(request, client); 
+          processRequest(request);
+          sendResponse(request, client);
           finished = true;
         }
       }

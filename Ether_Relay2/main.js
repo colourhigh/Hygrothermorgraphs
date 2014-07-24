@@ -71,6 +71,7 @@ $(document).ready(function() {
         this.program = [];
         this.stack = [];
         this.source_map = [];
+        this.state = {};
     }
 
     Machine.prototype.clone = function(){
@@ -112,36 +113,40 @@ $(document).ready(function() {
         machine.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration/ave_duration);
     }
 
-    var coil_state;
     var timeout;
     var waiting;
     var machine = new Machine();
 
-    var update = function(state) {
+    var update = function(state, machine) {
         var xhr;
         if (state !== undefined) {
-            xhr = $.get('/ajax?output=' + (state ? 'on' : 'off'));
+            xhr = $.get('/ajax', state);
         } else {
             xhr = $.get('/ajax');
         }
         xhr.done(function(data) {
-            coil_state = data.state === 'on';
-            $('.status .state').text('State: ' + data.state);
-            $('.status .temperature').text('Temperature: ' + data.temperature);
-            $('.status').css({
-                'color': coil_state ? 'green' : 'red'
-            });
+            machine.state = data.state;
+            $('.status .heat').text('Heat: ' + machine.state.heat)
+                .css({
+                'color': ( machine.state.heat !== 'on') ? 'green' : 'red'
+                });
+            $('.status .heat').text('Heat: ' + machine.state.cool)
+                .css({
+                'color': ( machine.state.cool !== 'on') ? 'green' : 'red'
+                });
+            $('.status .temperature').text('Temperature: ' + machine.state.temperature);
+
         })
     };
 
     function send(state, delay, machine) {
         if (waiting) waiting.remove();
-        update(state);
+        update(state, machine);
         var nums = [];
         for (var i = 0; i < machine.source_map[machine.pc]; i++) {
             nums.push('');
         }
-        nums.push('here, ' + (state ? 'on' : 'off') + ': waiting ' + delay.toFixed(2));
+        nums.push('here, ' +  (state.heat || state.cool ) + ': waiting ' + delay.toFixed(2));
         output.html(nums.join('<br/>'));;
     }
 
@@ -149,12 +154,20 @@ $(document).ready(function() {
         loop:
         while(machine.def.state() !== 'resolved'){
             switch (machine.program[machine.pc++]) {
-                case "on":
-                    send(true, machine.program[machine.pc], machine);
+                case "heat_on":
+                    send({heat: 'on'}, machine.program[machine.pc], machine);
                     machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
                     break loop;
-                case "off":
-                    send(false, machine.program[machine.pc], machine);
+                case "heat_off":
+                    send({heat: 'off'}, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null,  send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "cool_on":
+                    send({cool: 'on'}, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null,  send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "cool_off":
+                    send({cool: 'off'}, machine.program[machine.pc], machine);
                     machine.timeout = setTimeout(run.bind(null,  send, machine), machine.program[machine.pc++] * 1000);
                     break loop;
                 case "func":
@@ -281,11 +294,22 @@ $(document).ready(function() {
                 switch (tokens[0]) {
                     case 'on':
                     case 'off':
+                        machine.program.push('heat_' + tokens[0]);
+                        num = getFloat(tokens[1]);
+                        machine.program.push(num);
+                        break;
                     case 'push':
                     case 'pop':
                         machine.program.push(tokens[0]);
                         num = getFloat(tokens[1]);
                         machine.program.push(num);
+                        break;
+                    case 'cool':
+                        machine.program.push('cool_on');
+                        num = getFloat(tokens[1]);
+                        machine.program.push(num);
+                        machine.program.push('cool_off');
+                        machine.program.push(0);
                         break;
                     case 'func':
                         machine.program.push(tokens[0]);
@@ -373,7 +397,8 @@ $(document).ready(function() {
             'class': 'status'
         })
         .appendTo('#main')
-        .append($('<div/>').addClass('state').text('State: unknown'))
+        .append($('<div/>').addClass('heat').text('Heat: unknown'))
+        .append($('<div/>').addClass('cool').text('Cool: unknown'))
         .append($('<div/>').addClass('temperature').text('Temperature: unknown'))
         .css({
             'font-size': '30px',
