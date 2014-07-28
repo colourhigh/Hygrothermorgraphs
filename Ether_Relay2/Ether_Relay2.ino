@@ -27,7 +27,7 @@ int S3 = 16;
 int S1_HEAT = S1;
 int S1_COOL = S1<<1;
 int S2_HEAT = S2;
-int S2_COOL = S2<<1
+int S2_COOL = S2<<1;
 int S3_HEAT = S3;
 int S3_COOL = S3<<1;
 
@@ -235,14 +235,14 @@ void sendAjaxPage(EthernetClient client){
     getCurrentTemp(temperature);
     Serial.println(temperature);
     client.print("{\"state\":{\"heat\":\"");
-    if (RELAYON & S1) {
+    if (RELAYSTATE & S1) {
        client.print("on\"");
     }
     else{
       client.print("off\"");
     }
     client.print(",\"cool\":\"");
-    if (RELAYON & (S1<<2)) {
+    if (RELAYSTATE & (S1<<2)) {
        client.print("on\"");
     }
     else{
