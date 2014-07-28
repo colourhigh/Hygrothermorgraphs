@@ -46,10 +46,10 @@ def full_permutations():
 
 def random_sentence():
     def sentence(words, tup, max=45):
+        words += ' '+ tup[1]
         if len(words) > 45 or tup not in model:
             return words
-        e = choice(model[tup])
-        return sentence(words + ' '+ e, (tup[1], e))
+        return sentence(words, (tup[1], choice(model[tup])))
 
     start = choice(model.keys())
     return sentence(start[0], start)
