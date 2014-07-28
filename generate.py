@@ -11,7 +11,7 @@ from random import choice
 with open('word_list.txt') as w:
     word_list = nltk.PunktWordTokenizer().tokenize(w.read().decode("utf-8"))
 word_set = set(word_list)
-n = 3
+n = 4
 try:
     model  = pickle.load( open( "model.pickle", "rb" ) )
 except:
@@ -22,7 +22,7 @@ except:
             yield words[i:i+n]
 
     model = defaultdict(list)
-    directory = 'training_sets'
+    directory = 'guten/unzipped'
     for f in [ f for f in listdir(directory) if isfile(join(directory,f)) ]:
         with open(join(directory,f)) as w:
             print f
