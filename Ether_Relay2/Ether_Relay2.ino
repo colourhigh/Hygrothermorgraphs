@@ -204,7 +204,7 @@ void processRequest(char *request){
       RELAYSTATE &= ~(s<<1);
     }
 
-    digitalWrite(RELAY, RELAYSTATE)
+    digitalWrite(RELAY, RELAYSTATE);
 }
 
 void sendBasePage(EthernetClient client){
