@@ -187,21 +187,16 @@ $(document).ready(function() {
         }
     }
 
-    function simulate(machine) {
-        var simulation = [];
+    function simulate(machine) {4
         machine.duration = 0;
         finished = false;
         while(!finished){
             switch (machine.program[machine.pc++]) {
-                case "on":
-                    simulation.push('on');
-                    machine.duration += machine.program[machine.pc];
-                    simulation.push(machine.program[machine.pc++] * 1000);
-                    break;
-                case "off":
-                    simulation.push('off');
-                    machine.duration += machine.program[machine.pc];
-                    simulation.push(machine.program[machine.pc++] * 1000);
+                case "heat_on":
+                case "heat_off":
+                case "cool_on":
+                case "cool_off":
+                    machine.duration += machine.program[machine.pc++];
                     break;
                 case "func":
                     while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
