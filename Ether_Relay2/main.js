@@ -422,7 +422,7 @@ $(document).ready(function() {
             value: 'on',
             class: 'btn'
         })
-        .on('click', update.bind(null, true))
+        .on('click', update.bind(null, {heat: 'on'}))
         .appendTo('#buttons');
 
     $('<input/>')
@@ -431,7 +431,7 @@ $(document).ready(function() {
             value: 'off',
             class: 'btn'
         })
-        .on('click', update.bind(null, false))
+        .on('click', update.bind(null, {heat: 'off'}))
         .appendTo('#buttons');
 
 
