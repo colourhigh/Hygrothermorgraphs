@@ -2,8 +2,9 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-
+#include "Wire.h"
 #define CHAR_MAX 100
+#define I2C_ADDR  0x20  // 0x20 is the address with all jumpers removed
 
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network:
@@ -33,13 +34,13 @@ int S3_COOL = S3<<1;
 
 
 
-int RELAY = 1;
+
 int Pin2 = 2;
 char temperature[8];
 
 boolean RELAYSTATE = 0;                  // Status flag
 void setup() {
-  pinMode(RELAY, OUTPUT);
+
 
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
@@ -57,6 +58,13 @@ void setup() {
   digitalWrite(Pin2, LOW);
   pinMode(Pin2, INPUT);
   pinMode(15, INPUT);
+
+  Wire.begin(); // Wake up I2C bus
+  // Set I/O bank A to outputs
+  Wire.beginTransmission(I2C_ADDR);
+  Wire.write(0x00); // IODIRA register
+  Wire.write(0x00); // Set all of bank A to outputs
+  Wire.endTransmission();
 }
 
 int s_cmp(const char *a, const char *b)
@@ -203,8 +211,11 @@ void processRequest(char *request){
     if(s_match(request, "cool=off") >0 ){
       RELAYSTATE &= ~(s<<1);
     }
-
-    digitalWrite(RELAY, RELAYSTATE);
+    Wire.beginTransmission(I2C_ADDR);
+    Wire.write(0x12);        // Select GPIOA
+    Wire.write(RELAYSTATE);  // Send value to bank A
+    Wire.endTransmission();
+    //digitalWrite(RELAY, RELAYSTATE);
 }
 
 void sendBasePage(EthernetClient client){
