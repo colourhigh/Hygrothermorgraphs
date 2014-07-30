@@ -25,14 +25,6 @@ EthernetServer server(80);
 int S1 = 1;
 int S2 = 4;
 int S3 = 16;
-int S1_HEAT = S1;
-int S1_COOL = S1<<1;
-int S2_HEAT = S2;
-int S2_COOL = S2<<1;
-int S3_HEAT = S3;
-int S3_COOL = S3<<1;
-
-
 
 
 int Pin2 = 2;
@@ -191,7 +183,7 @@ void getCurrentTemp (char *temp)
   temp[pos++] = '\0';
 }
 
-void processRequest(char *request){
+int getOutputIndex(char * request){
     int s = S1;
     if(s_match(request, "s=2") >0 ){
       s = S2;
@@ -199,6 +191,12 @@ void processRequest(char *request){
     if(s_match(request, "s=3") >0 ){
       s = S3;
     }
+    return s;
+}
+
+
+void processRequest(char *request){
+    int s = getOutputIndex(request);
     if(s_match(request, "heat=on") >0 ){
         RELAYSTATE |= s;
     }
@@ -238,7 +236,7 @@ void sendBasePage(EthernetClient client){
     client.println("</html>");
 }
 
-void sendAjaxPage(EthernetClient client){
+void sendAjaxPage(EthernetClient client, int s){
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
     client.println("Connnection: close");
@@ -246,14 +244,14 @@ void sendAjaxPage(EthernetClient client){
     getCurrentTemp(temperature);
     Serial.println(temperature);
     client.print("{\"state\":{\"heat\":\"");
-    if (RELAYSTATE & S1) {
+    if (RELAYSTATE & s) {
        client.print("on\"");
     }
     else{
       client.print("off\"");
     }
     client.print(",\"cool\":\"");
-    if (RELAYSTATE & (S1<<2)) {
+    if (RELAYSTATE & (s<<2)) {
        client.print("on\"");
     }
     else{
@@ -266,7 +264,7 @@ void sendAjaxPage(EthernetClient client){
 
 void sendResponse(char* request, EthernetClient client){
   if(s_match(request, "/ajax") > 0){
-       sendAjaxPage(client);
+       sendAjaxPage(client, getOutputIndex(request));
    }
    else{
       sendBasePage(client);
