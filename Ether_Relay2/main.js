@@ -55,14 +55,28 @@ $(document).ready(function() {
     }
 
 
-    function getTemp(temp) {
-        for (var i = 0; i < temp_map.length; i++) {
-            if (temp_map[i][0] > temp) {
-                return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
+        function getTemp(temp) {
+            for (var i = 0; i < temp_map.length; i++) {
+                if (temp_map[i][0] > temp) {
+                    return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
+                }
             }
+            return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
         }
-        return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
-    }
+
+        function getFloat(input) {
+            var float = parseFloat(input);
+            if (Number.isNaN(float)) {
+                throw 'error, bad number';
+            }
+            return float;
+        }
+
+        function formatDuration(seconds) {
+            var hours = parseInt(seconds / 3600, 10);
+            var minutes = parseInt(seconds / 60, 10) % 60;
+            return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
+        }
 
     var Machine = function() {
         this.pc = 0;
@@ -86,9 +100,9 @@ $(document).ready(function() {
         off2 = getFloat(off2);
         steps = getFloat(steps);
         for (var i = 0; i < steps; i++) {
-            this.program.push('on');
+            this.program.push('heat_on');
             this.program.push(on1 + (on2 - on1) / steps * i);
-            this.program.push('off');
+            this.program.push('heat_off');
             this.program.push(off1 + (off2 - off1) / steps * i);
         }
     }
@@ -98,7 +112,7 @@ $(document).ready(function() {
         var pair = getTemp(temp);
         var length = pair[0] + pair[1];
         for (var i = 0; i < duration; i += length) {
-            [].push.apply(this.program, ['on', pair[0], 'off', pair[1]]);
+            [].push.apply(this.program, ['heat_on', pair[0], 'heat_off', pair[1]]);
         }
     }
 
@@ -108,7 +122,7 @@ $(document).ready(function() {
         var pair2 = getTemp(temp2);
         var ave_duration = (Math.abs(pair1[0] + pair1[1]) / 2 + Math.abs(pair2[0] + pair2[1]) / 2);
         // tween is responsible for most of the error in timing
-        machine.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration / ave_duration);
+        this.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration / ave_duration);
     };
 
 
@@ -214,6 +228,7 @@ $(document).ready(function() {
                         break;
                     case "stop":
                     default:
+                        console.log(machine.program[machine.pc - 1]);
                         finished = true;
                 }
             }
@@ -263,21 +278,6 @@ $(document).ready(function() {
             pause();
             parse();
         }
-
-        function getFloat(input) {
-            var float = parseFloat(input);
-            if (Number.isNaN(float)) {
-                throw 'error, bad number';
-            }
-            return float;
-        }
-
-        function formatDuration(seconds) {
-            var hours = parseInt(seconds / 3600, 10);
-            var minutes = parseInt(seconds / 60, 10) % 60;
-            return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
-        }
-
 
         function parse() {
             machine = new Machine();
@@ -379,7 +379,6 @@ $(document).ready(function() {
                 }
             });
             machine.program.push('stop');
-            console.log(machine.program);
             output.html(status.join('<br/>'));
             if (!errored) {
                 var duration = formatDuration(simulate(machine.clone()).duration);
@@ -391,7 +390,7 @@ $(document).ready(function() {
 
         var wrapper = $('<div/>').css({
             width: '33%',
-            float:'left'
+            float: 'left'
         }).appendTo('#main');
 
         $('<div/>')
@@ -403,7 +402,7 @@ $(document).ready(function() {
             .append($('<div/>').addClass('cool').text('Cool: unknown'))
             .append($('<div/>').addClass('temperature').text('Temperature: unknown'))
             .css({
-                'font-size': '30px',
+                'font-size': '19px',
                 'font-family': 'monospace',
                 'text-align': 'center'
             });
@@ -493,13 +492,13 @@ $(document).ready(function() {
 
         var line_numbers = $('<div/>')
             .css({
-                width: '40px',
+                width: '30px',
                 height: '100%',
                 backgroundColor: '#efefef',
                 padding: '6px',
-                fontSize: '17px',
+                fontSize: '13px',
                 fontFamily: 'monospace',
-                lineHeight: '17px',
+                lineHeight: '13px',
                 float: 'left',
                 border: '1px solid #A9A9A9',
                 borderWidth: '1px 0 1px 1px'
@@ -507,11 +506,11 @@ $(document).ready(function() {
             .appendTo(pane);
         var textarea = $('<textarea/>')
             .css({
-                width: '40%',
+                width: 'calc(40% - 30px)',
                 padding: '6px',
-                fontSize: '17px',
+                fontSize: '13px',
                 fontFamily: 'monospace',
-                lineHeight: '17px',
+                lineHeight: '13px',
                 float: 'left',
                 resize: 'none',
                 border: '1px solid #A9A9A9'
@@ -522,13 +521,13 @@ $(document).ready(function() {
         var output = $('<div/>')
             .addClass('output_state')
             .css({
-                width: '40%',
+                width: 'calc(40% - 30px)',
                 height: '100%',
                 backgroundColor: '#efefef',
                 padding: '6px',
-                fontSize: '17px',
+                fontSize: '13px',
                 fontFamily: 'monospace',
-                lineHeight: '17px',
+                lineHeight: '13px',
                 float: 'left',
                 border: '1px solid #A9A9A9',
                 borderWidth: '1px 1px 1px 0'
