@@ -14,19 +14,18 @@ def get_defaultdictint():
 def get_defaultdict():
     return defaultdict(get_defaultdictint)
 
-with open('word_list.txt') as w:
-    word_list = nltk.PunktWordTokenizer().tokenize(w.read().decode("utf-8"))
-word_set = set(word_list)
 ngrams = [3,4,5]
 
+letters = set('AHIJLMNTUVYW '.lower())
+
 try:
-    model  = pickle.load( open( "model.pickle", "rb" ) )
+    model = pickle.load( open( "model.pickle", "rb" ) )
 except:
     def ngram(words, n):
         if len(words) < n:
             return
         for i in range(len(words) - (n-1)):
-            yield words[i:i+n]
+            yield [w.lower() for w in words[i:i+n]]
 
     model = defaultdict(get_defaultdict)
     directory = 'guten/unzipped'
@@ -35,12 +34,9 @@ except:
             print f
             for n in ngrams:
                 for words in ngram(nltk.PunktWordTokenizer().tokenize(w.read().decode("latin-1")), n):
-                    if len(word_set.intersection(words)) == n:
+                    if set(''.join(words)).issubset(letters):
                         model[n][tuple(words[:-1])][words[-1]] +=1
-    pickle.dump(model, open( "model.pickle", "wb" ) )
-
-
-print model
+    pickle.dump(model, open( "model.pickle", "wb" ))
 
 def expand_model(d):
     result = []
