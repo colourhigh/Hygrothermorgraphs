@@ -199,12 +199,14 @@ void processRequest(char *request){
     int s = getOutputIndex(request);
     if(s_match(request, "heat=on") >0 ){
         RELAYSTATE |= s;
+        RELAYSTATE &= ~(s<<1);
     }
     if(s_match(request, "heat=off") >0 ){
       RELAYSTATE &= ~s;
     }
     if(s_match(request, "cool=on") >0 ){
         RELAYSTATE |= (s<<1);
+        RELAYSTATE &= ~s;
     }
     if(s_match(request, "cool=off") >0 ){
       RELAYSTATE &= ~(s<<1);
