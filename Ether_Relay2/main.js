@@ -78,16 +78,17 @@ $(document).ready(function() {
             return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
         }
 
-    var Machine = function() {
+    var Machine = function(machine_index) {
         this.pc = 0;
         this.program = [];
         this.stack = [];
         this.source_map = [];
         this.state = {};
+        this.machine_index = machine_index;
     }
 
     Machine.prototype.clone = function() {
-        var m = new Machine();
+        var m = new Machine(this.machine_index);
         m.program = this.program.slice();
         m.source_map = this.source_map.slice();
         return m;
@@ -126,29 +127,104 @@ $(document).ready(function() {
     };
 
 
-    ['s1', 's2', 's3'].forEach(function(s, machine_index) {
+    var update = function(state, machine) {
+        var xhr;
+        state = state || {};
+        state.s = machine.machine_index + 1;
+        xhr = $.get('/ajax', state);
+
+        xhr.done(function(data) {
+            machine.state = data.state;
+            $('.status .heat').text('Heat: ' + machine.state.heat)
+                .css({
+                    'color': (machine.state.heat !== 'on') ? 'green' : 'red'
+                });
+            $('.status .heat').text('Heat: ' + machine.state.cool)
+                .css({
+                    'color': (machine.state.cool !== 'on') ? 'green' : 'red'
+                });
+            $('.status .temperature').text('Temperature: ' + machine.state.temperature);
+
+        })
+    };
+
+    function run(send, machine) {
+        loop: while (machine.def.state() !== 'resolved') {
+            switch (machine.program[machine.pc++]) {
+                case "heat_on":
+                    send({
+                        heat: 'on'
+                    }, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "heat_off":
+                    send({
+                        heat: 'off'
+                    }, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "cool_on":
+                    send({
+                        cool: 'on'
+                    }, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "cool_off":
+                    send({
+                        cool: 'off'
+                    }, machine.program[machine.pc], machine);
+                    machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
+                    break loop;
+                case "func":
+                    while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
+                    break;
+                case "goto":
+                    machine.stack.push(machine.pc + 1);
+                    machine.pc = machine.program[machine.pc];
+                    break;
+                case "end":
+                    machine.pc = machine.stack.pop();
+                    break;
+                case "stop":
+                    machine.pc = 0;
+                    machine.def.resolve();
+            }
+        }
+    }
+
+    function simulate(machine) {
+        machine.duration = 0;
+        finished = false;
+        while (!finished) {
+            switch (machine.program[machine.pc++]) {
+                case "heat_on":
+                case "heat_off":
+                case "cool_on":
+                case "cool_off":
+                    machine.duration += machine.program[machine.pc++];
+                    break;
+                case "func":
+                    while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
+                    break;
+                case "goto":
+                    machine.stack.push(machine.pc + 1);
+                    machine.pc = machine.program[machine.pc];
+                    break;
+                case "end":
+                    machine.pc = machine.stack.pop();
+                    break;
+                case "stop":
+                default:
+                    console.log(machine.program[machine.pc - 1]);
+                    finished = true;
+            }
+        }
+        return machine;
+    }
+
+    var outputs = ['s1', 's2', 's3'].map(function(s, machine_index) {
         var waiting;
-        var machine = new Machine();
-
-        var update = function(state, machine) {
-            var xhr;
-            state = state || {};
-            state.s = machine_index + 1;
-            xhr = $.get('/ajax', state);
-            xhr.done(function(data) {
-                machine.state = data.state;
-                $('.status .heat').text('Heat: ' + machine.state.heat)
-                    .css({
-                        'color': (machine.state.heat !== 'on') ? 'green' : 'red'
-                    });
-                $('.status .heat').text('Heat: ' + machine.state.cool)
-                    .css({
-                        'color': (machine.state.cool !== 'on') ? 'green' : 'red'
-                    });
-                $('.status .temperature').text('Temperature: ' + machine.state.temperature);
-
-            })
-        };
+        var machine = new Machine(machine_index);
 
         function send(state, delay, machine) {
             if (waiting) waiting.remove();
@@ -161,80 +237,6 @@ $(document).ready(function() {
             output.html(nums.join('<br/>'));;
         }
 
-        function run(send, machine) {
-            loop: while (machine.def.state() !== 'resolved') {
-                switch (machine.program[machine.pc++]) {
-                    case "heat_on":
-                        send({
-                            heat: 'on'
-                        }, machine.program[machine.pc], machine);
-                        machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
-                        break loop;
-                    case "heat_off":
-                        send({
-                            heat: 'off'
-                        }, machine.program[machine.pc], machine);
-                        machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
-                        break loop;
-                    case "cool_on":
-                        send({
-                            cool: 'on'
-                        }, machine.program[machine.pc], machine);
-                        machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
-                        break loop;
-                    case "cool_off":
-                        send({
-                            cool: 'off'
-                        }, machine.program[machine.pc], machine);
-                        machine.timeout = setTimeout(run.bind(null, send, machine), machine.program[machine.pc++] * 1000);
-                        break loop;
-                    case "func":
-                        while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
-                        break;
-                    case "goto":
-                        machine.stack.push(machine.pc + 1);
-                        machine.pc = machine.program[machine.pc];
-                        break;
-                    case "end":
-                        machine.pc = machine.stack.pop();
-                        break;
-                    case "stop":
-                        machine.pc = 0;
-                        machine.def.resolve();
-                }
-            }
-        }
-
-        function simulate(machine) {
-            machine.duration = 0;
-            finished = false;
-            while (!finished) {
-                switch (machine.program[machine.pc++]) {
-                    case "heat_on":
-                    case "heat_off":
-                    case "cool_on":
-                    case "cool_off":
-                        machine.duration += machine.program[machine.pc++];
-                        break;
-                    case "func":
-                        while (machine.program[machine.pc++] !== 'end' && machine.pc < machine.program.length) {}
-                        break;
-                    case "goto":
-                        machine.stack.push(machine.pc + 1);
-                        machine.pc = machine.program[machine.pc];
-                        break;
-                    case "end":
-                        machine.pc = machine.stack.pop();
-                        break;
-                    case "stop":
-                    default:
-                        console.log(machine.program[machine.pc - 1]);
-                        finished = true;
-                }
-            }
-            return machine;
-        }
-
         function start() {
             machine.def = $.Deferred();
             machine.def
@@ -244,8 +246,20 @@ $(document).ready(function() {
             run(send, machine)
         }
 
-        function pause() {
+        function pause(off) {
             clearTimeout(machine.timeout);
+            if (off) {
+                update({
+                    heat: 'off',
+                    cool: 'off'
+                }, machine);
+            }
+            var nums = [];
+            for (var i = 0; i < machine.source_map[machine.pc]; i++) {
+                nums.push('');
+            }
+            nums.push('here, paused');
+            output.html(nums.join('<br/>'));;
         }
 
         function reset() {
@@ -280,7 +294,7 @@ $(document).ready(function() {
         }
 
         function parse() {
-            machine = new Machine();
+            machine = new Machine(machine_index);
             var status = [];
             var funcs = [];
             var lines = textarea.val().split(/\r*\n/);
@@ -423,9 +437,11 @@ $(document).ready(function() {
                 value: 'on',
                 class: 'btn'
             })
-            .on('click', update.bind(null, {
-                heat: 'on'
-            }))
+            .on('click', function() {
+                update({
+                    heat: 'on'
+                }, machine);
+            })
             .appendTo(buttons);
 
         $('<input/>')
@@ -434,9 +450,11 @@ $(document).ready(function() {
                 value: 'off',
                 class: 'btn'
             })
-            .on('click', update.bind(null, {
-                heat: 'off'
-            }))
+            .on('click', function() {
+                update({
+                    heat: 'off'
+                }, machine);
+            })
             .appendTo(buttons);
 
 
@@ -537,7 +555,94 @@ $(document).ready(function() {
 
         textarea.trigger('keyup')
 
-        update();
+        update(null, machine);
 
+        return {
+            start: start,
+            pause: pause
+        }
     });
+
+
+    var startAll = function() {
+        outputs.forEach(function(o) {
+            o.start();
+        })
+    }
+
+    var pauseAll = function() {
+        outputs.forEach(function(o) {
+            o.pause(true);
+        })
+    }
+
+    var timeSelect = function(label) {
+        var select = $('<select/>');
+        for (var i = 0; i < 24; i++) {
+            for (var j = 0; j < 4; j++) {
+                select.append($('<option/>').val(i + ':' + (j * 15)).text(i + ':' + ('0' + (j * 15)).substr(-2)));
+            }
+        }
+        return select;
+    }
+
+    var timerUpdate = function() {
+        var now = new Date();
+        if ((now.getHours() > startTime[0] || (now.getHours() === startTime[0] && now.getMinutes() > startTime[1])) &&
+            (now.getHours() < endTime[0] || (now.getHours() === endTime[0] && now.getMinutes() < endTime[1]))) {
+            timerStatus.text('Running');
+            if (!running) {
+                startAll();
+            }
+            running = true;
+        } else {
+            timerStatus.text('Sleeping');
+            if (running) {
+                pauseAll();
+            }
+            running = false;
+
+        }
+    }
+
+    var timers = $('<div/>').prependTo('#main');
+    var running = false;
+    var timerStatus = $('<span/>')
+
+    var startTime = [0, 0];
+    var endTime = [0, 0];
+    var startSelect = timeSelect()
+        .val('9:0')
+        .on('change', function() {
+            startTime = [$(this).val().split(':')[0] | 0, $(this).val().split(':')[1] | 0];
+            timerUpdate();
+        })
+        .trigger('change');
+
+    var endSelect = timeSelect()
+        .val('17:0')
+        .on('change', function() {
+            endTime = [$(this).val().split(':')[0] | 0, $(this).val().split(':')[1] | 0];
+            timerUpdate();
+        })
+        .trigger('change');
+
+    var timerCSS = {
+        paddingLeft: '20px',
+    }
+
+    timers.css({
+        textAlign: 'center',
+        width: '100%',
+        padding: '20px',
+        fontSize: '18px',
+        fontFamily: 'monospace'
+    })
+        .append($('<div/>').append('Timer Status:').append(timerStatus))
+        .append($('<span/>').append('Start Time').append(startSelect).css(timerCSS))
+        .append($('<span/>').append('Finish Time').append(endSelect).css(timerCSS))
+
+
+    var timerInterval = setInterval(timerUpdate, 1000);
+
 });
