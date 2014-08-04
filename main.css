@@ -1,0 +1,25 @@
+h3{
+	text-align:center;
+}
+
+.buttons{
+	text-align: center;
+}
+
+.entry{
+	border: 1px solid #CDCDCD;
+margin: 20px auto;
+width: 956px;
+
+padding: 10px;
+text-align: center;
+background-color: #EFEFEF;
+}
+
+.entry table{
+	margin: 0 auto;
+}
+
+.entry textarea{
+	width: 300px;
+}
