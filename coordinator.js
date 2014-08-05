@@ -33,10 +33,10 @@ $(document).on('ready', function(){
 				}).toArray()
 			}
 		}).toArray();
-		$.post('/schedule', {data: JSON.stringify(data)});
+		$.post('/json/schedule', {data: JSON.stringify(data)});
 	});
 
-	$.get('/schedule')
+	$.get('/json/schedule')
 		.then(function(data){
 			data.forEach(function(d){
 				var div = $('div[data-date="'+d.date+'"]');

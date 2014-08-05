@@ -1,5 +1,7 @@
 $(document).ready(function() {
 
+    var arduinoIP = '10.1.1.50';
+
     var temp_map = [
         [1.0, 0.1, 20],
         [16.75, 1.2, 4],
@@ -131,7 +133,7 @@ $(document).ready(function() {
         var xhr;
         state = state || {};
         state.s = machine.machine_index + 1;
-        xhr = $.get('/ajax', state);
+        xhr = $.get('http://'+arduinoIP+'/ajax', state);
 
         xhr.done(function(data) {
             machine.state = data.state;
@@ -559,10 +561,10 @@ $(document).ready(function() {
 
         return {
             start: start,
-            pause: pause
+            pause: pause,
+            textarea: textarea
         }
     });
-
 
     var startAll = function() {
         outputs.forEach(function(o) {
@@ -591,24 +593,27 @@ $(document).ready(function() {
         if ((now.getHours() > startTime[0] || (now.getHours() === startTime[0] && now.getMinutes() > startTime[1])) &&
             (now.getHours() < endTime[0] || (now.getHours() === endTime[0] && now.getMinutes() < endTime[1]))) {
             timerStatus.text('Running');
-            if (!running) {
+            if (!running && ready) {
                 startAll();
+                running = true;
             }
-            running = true;
         } else {
             timerStatus.text('Sleeping');
             if (running) {
                 pauseAll();
+                running = false;
             }
-            running = false;
-
         }
     }
 
     var timers = $('<div/>').prependTo('#main');
     var running = false;
-    var timerStatus = $('<span/>')
-
+    var ready = false;
+    var timerStatus = $('<span/>');
+    var ipInput = $('<input/>').val(arduinoIP)
+        .on('change', function(){
+            arduinoIP = $(this).val();
+        });
     var startTime = [0, 0];
     var endTime = [0, 0];
     var startSelect = timeSelect()
@@ -634,15 +639,38 @@ $(document).ready(function() {
     timers.css({
         textAlign: 'center',
         width: '100%',
-        padding: '20px',
+        padding: '20px 0 20px 0',
         fontSize: '18px',
         fontFamily: 'monospace'
     })
+        .append($('<div/>').append('Arduino IP').append(ipInput))
         .append($('<div/>').append('Timer Status:').append(timerStatus))
         .append($('<span/>').append('Start Time').append(startSelect).css(timerCSS))
         .append($('<span/>').append('Finish Time').append(endSelect).css(timerCSS))
 
-
     var timerInterval = setInterval(timerUpdate, 1000);
+
+    $.get('/json/schedule')
+        .done(function(data){
+            var date = (new Date()).toLocaleDateString();
+            for(var i=0;i<data.length; i++){
+                if(data[i].date === date){
+                    data[i].values.forEach(function(v, i){
+                        var result = v.split(' ').map(function(v){
+                            return v ? 'word '+v +'\n': '';
+                        }).join('');
+                        outputs[i].textarea.val(result).trigger('keyup');
+                    });
+
+                }
+            }
+        })
+        .always(function(){
+            if(location.search.indexOf('no_auto_start') === -1){
+                ready = true;
+            }
+        });
+
+
 
 });

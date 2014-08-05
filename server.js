@@ -23,12 +23,14 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 
 db.once('open', function() {
-    router.get('/', function(req, res) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        // Request methods you wish to allow
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-        // Request headers you wish to allow
-        res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+     router.get('/', function(req, res) {
+        fs.readFile('Ether_Relay2/index.html',function (err, data){
+                res.writeHead(200, {'Content-Type': 'text/html','Content-Length':data.length});
+                res.write(data);
+                res.end();
+            });
+    });
+    router.get('/schedule', function(req, res) {
         fs.readFile('index.html',function (err, data){
                 res.writeHead(200, {'Content-Type': 'text/html','Content-Length':data.length});
                 res.write(data);
@@ -42,6 +44,13 @@ db.once('open', function() {
                 res.end();
             });
     });
+    router.get('/main.js', function(req, res) {
+        fs.readFile('Ether_Relay2/main.js',function (err, data){
+                res.writeHead(200, {'Content-Type': 'javascript/css','Content-Length':data.length});
+                res.write(data);
+                res.end();
+            });
+    });
     router.get('/main.css', function(req, res) {
         fs.readFile('main.css',function (err, data){
                 res.writeHead(200, {'Content-Type': 'text/css','Content-Length':data.length});
@@ -49,7 +58,7 @@ db.once('open', function() {
                 res.end();
             });
     });
-    router.post('/schedule', function(req, res) {
+    router.post('/json/schedule', function(req, res) {
         var results = JSON.parse(req.body.data);
         Entry.remove();
         results.forEach(function(p) {
@@ -57,7 +66,7 @@ db.once('open', function() {
             entry.save();
         });
     });
-    router.get('/schedule', function(req, res) {
+    router.get('/json/schedule', function(req, res) {
         Entry.find(function (err, entries) {
           if (err) return console.error(err);
           res.json(entries);

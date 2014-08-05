@@ -228,7 +228,6 @@ void sendBasePage(EthernetClient client){
     client.println("<head>");
     client.println("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");
     client.println("<script src='http://code.jquery.com/jquery-1.11.1.min.js'></script>");
-    client.println("<script src='http://d3js.org/d3.v3.min.js'></script>");
     client.println("<script src='http://localhost:8000/main.js'></script>");
     client.println("<title>Hygrothermograph</title>");
     client.println("</head>");
@@ -241,6 +240,9 @@ void sendBasePage(EthernetClient client){
 void sendAjaxPage(EthernetClient client, int s){
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
+    client.println('Access-Control-Allow-Origin: *');
+    client.println('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    client.println('Access-Control-Allow-Headers: X-Requested-With,content-type');
     client.println("Connnection: close");
     client.println("");
     getCurrentTemp(temperature);
