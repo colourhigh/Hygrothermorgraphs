@@ -13,7 +13,10 @@ var router = express.Router();
 
 var entrySchema  = new mongoose.Schema({
     date: String,
-    values: [String]
+    values: [String],
+    start: String,
+    end: String,
+    ip: String
 });
 
 var Entry = mongoose.model('Entry', entrySchema);
@@ -60,7 +63,7 @@ db.once('open', function() {
     });
     router.post('/json/schedule', function(req, res) {
         var results = JSON.parse(req.body.data);
-        Entry.remove();
+        Entry.find().remove();
         results.forEach(function(p) {
             var entry = new Entry(p);
             entry.save();

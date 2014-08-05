@@ -578,7 +578,7 @@ $(document).ready(function() {
         })
     }
 
-    var timeSelect = function(label) {
+    var timeSelect = function() {
         var select = $('<select/>');
         for (var i = 0; i < 24; i++) {
             for (var j = 0; j < 4; j++) {
@@ -611,7 +611,7 @@ $(document).ready(function() {
     var ready = false;
     var timerStatus = $('<span/>');
     var ipInput = $('<input/>').val(arduinoIP)
-        .on('change', function(){
+        .on('keyup', function(){
             arduinoIP = $(this).val();
         });
     var startTime = [0, 0];
@@ -655,6 +655,9 @@ $(document).ready(function() {
             var date = (new Date()).toLocaleDateString();
             for(var i=0;i<data.length; i++){
                 if(data[i].date === date){
+                    ipInput.val(data[i].ip).trigger('keyup');
+                    startSelect.val(data[i].start).trigger('change');
+                    endSelect.val(data[i].end).trigger('change');
                     data[i].values.forEach(function(v, i){
                         var result = v.split(' ').map(function(v){
                             return v ? 'word '+v +'\n': '';
