@@ -53,6 +53,28 @@ $(document).ready(function() {
                 machine.temp(50, 25);
                 return 'high';
             }
+        },
+        // TEST TO DELETE
+        HL: {
+            low: function(machine) {
+                machine.temp(0, 20);
+                machine.temp(50, 5);
+                machine.temp(35, 50);
+                machine.temp(50, 5);
+                machine.temp(0, 20);
+                machine.temp(50, 15);
+                machine.temp(0, 15);
+                return 'low';
+            },
+            high: function(machine) {
+                machine.temp(50, 2);
+                machine.temp(0, 15);
+                machine.temp(50, 25);
+                machine.temp(50, 2);
+                machine.temp(0, 15);
+                machine.temp(50, 25);
+                return 'high';
+            }
         }
     }
 
@@ -127,6 +149,28 @@ $(document).ready(function() {
         // tween is responsible for most of the error in timing
         this.tween(pair1[0], pair1[1], pair2[0], pair2[1], duration / ave_duration);
     };
+
+
+    Machine.prototype.process_word = function(word){
+        var position = 'low'
+        word = word.toUpperCase();
+        var i=0, j, found;
+        while(i<word.length){
+            found = false;
+            for(var j=word.length; j>i;j--){
+                var str = word.substring(i,j);
+                if(alphabet[str] && alphabet[str][position]){
+                    position = alphabet[str][position](this);
+                    i=j;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                throw 'could not process word';
+            }
+        }
+    }
 
 
     var update = function(state, machine) {
@@ -369,16 +413,7 @@ $(document).ready(function() {
                             (alphabet[letter].low || alphabet[letter].high)(machine);
                             break;
                         case 'word':
-                            var position = 'low'
-                            tokens[1].toUpperCase().split('').map(function(letter) {
-                                if (!alphabet[letter]) {
-                                    throw 'unknown letter';
-                                }
-                                if (!alphabet[letter][position]) {
-                                    throw 'unknown letter position';
-                                }
-                                alphabet[letter][position](machine);
-                            });
+                            machine.process_word(tokens[1])
                             break;
                         case '':
                             break;
