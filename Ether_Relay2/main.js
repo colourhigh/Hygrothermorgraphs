@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-    var arduinoIP = '10.1.1.50';
+    var arduinoIP = '192.168.1.69';
 
     var temp_map = [
         [1.0, 0.1, 20],
@@ -79,28 +79,28 @@ $(document).ready(function() {
     }
 
 
-        function getTemp(temp) {
-            for (var i = 0; i < temp_map.length; i++) {
-                if (temp_map[i][0] > temp) {
-                    return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
-                }
+    function getTemp(temp) {
+        for (var i = 0; i < temp_map.length; i++) {
+            if (temp_map[i][0] > temp) {
+                return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
             }
-            return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
         }
+        return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
+    }
 
-        function getFloat(input) {
-            var float = parseFloat(input);
-            if (Number.isNaN(float)) {
-                throw 'error, bad number';
-            }
-            return float;
+    function getFloat(input) {
+        var float = parseFloat(input);
+        if (Number.isNaN(float)) {
+            throw 'error, bad number';
         }
+        return float;
+    }
 
-        function formatDuration(seconds) {
-            var hours = parseInt(seconds / 3600, 10);
-            var minutes = parseInt(seconds / 60, 10) % 60;
-            return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
-        }
+    function formatDuration(seconds) {
+        var hours = parseInt(seconds / 3600, 10);
+        var minutes = parseInt(seconds / 60, 10) % 60;
+        return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
+    }
 
     var Machine = function(machine_index) {
         this.pc = 0;
@@ -151,22 +151,23 @@ $(document).ready(function() {
     };
 
 
-    Machine.prototype.process_word = function(word){
+    Machine.prototype.process_word = function(word) {
         var position = 'low'
         word = word.toUpperCase();
-        var i=0, j, found;
-        while(i<word.length){
+        var i = 0,
+            j, found;
+        while (i < word.length) {
             found = false;
-            for(var j=word.length; j>i;j--){
-                var str = word.substring(i,j);
-                if(alphabet[str] && alphabet[str][position]){
+            for (var j = word.length; j > i; j--) {
+                var str = word.substring(i, j);
+                if (alphabet[str] && alphabet[str][position]) {
                     position = alphabet[str][position](this);
-                    i=j;
+                    i = j;
                     found = true;
                     break;
                 }
             }
-            if(!found){
+            if (!found) {
                 throw 'could not process word';
             }
         }
@@ -177,7 +178,7 @@ $(document).ready(function() {
         var xhr;
         state = state || {};
         state.s = machine.machine_index + 1;
-        xhr = $.get('http://'+arduinoIP+'/ajax', state);
+        xhr = $.get('http://' + arduinoIP + '/ajax', state);
 
         xhr.done(function(data) {
             machine.state = data.state;
@@ -646,7 +647,7 @@ $(document).ready(function() {
     var ready = false;
     var timerStatus = $('<span/>');
     var ipInput = $('<input/>').val(arduinoIP)
-        .on('keyup', function(){
+        .on('keyup', function() {
             arduinoIP = $(this).val();
         });
     var startTime = [0, 0];
@@ -686,16 +687,17 @@ $(document).ready(function() {
     var timerInterval = setInterval(timerUpdate, 1000);
 
     $.get('/json/schedule')
-        .done(function(data){
-            var date = (new Date()).toLocaleDateString();
-            for(var i=0;i<data.length; i++){
-                if(data[i].date === date){
+        .done(function(data) {
+            var d = new Date();
+            var date = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].date === date) {
                     ipInput.val(data[i].ip).trigger('keyup');
                     startSelect.val(data[i].start).trigger('change');
                     endSelect.val(data[i].end).trigger('change');
-                    data[i].values.forEach(function(v, i){
-                        var result = v.split(' ').map(function(v){
-                            return v ? 'word '+v +'\n': '';
+                    data[i].values.forEach(function(v, i) {
+                        var result = v.split(' ').map(function(v) {
+                            return v ? 'word ' + v + '\n' : '';
                         }).join('');
                         outputs[i].textarea.val(result).trigger('keyup');
                     });
@@ -703,8 +705,8 @@ $(document).ready(function() {
                 }
             }
         })
-        .always(function(){
-            if(location.search.indexOf('no_auto_start') === -1){
+        .always(function() {
+            if (location.search.indexOf('no_auto_start') === -1) {
                 ready = true;
             }
         });
