@@ -597,8 +597,6 @@ $(document).ready(function() {
 
         textarea.trigger('keyup')
 
-        update(null, machine);
-
         return {
             start: start,
             pause: pause,
@@ -690,13 +688,16 @@ $(document).ready(function() {
 
     var timerInterval = setInterval(timerUpdate, 1000);
 
-    $.get('/json/schedule')
+    $.get('/json/schedule/ip')
+        .done(function(data) {
+            ipInput.val(data.ip).trigger('keyup');
+        })
+    $.get('/json/schedule/entries')
         .done(function(data) {
             var d = new Date();
             var date = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
             for (var i = 0; i < data.length; i++) {
                 if (data[i].date === date) {
-                    ipInput.val(data[i].ip).trigger('keyup');
                     startSelect.val(data[i].start).trigger('change');
                     endSelect.val(data[i].end).trigger('change');
                     data[i].values.forEach(function(v, i) {
@@ -715,6 +716,23 @@ $(document).ready(function() {
             }
         });
 
+    (function refreshAt(hours, minutes, seconds) {
+        var now = new Date();
+        var then = new Date();
+
+        if (now.getHours() > hours ||
+            (now.getHours() == hours && now.getMinutes() > minutes) ||
+            now.getHours() == hours && now.getMinutes() == minutes && now.getSeconds() >= seconds) {
+            then.setDate(now.getDate() + 1);
+        }
+        then.setHours(hours);
+        then.setMinutes(minutes);
+        then.setSeconds(seconds);
+        var timeout = (then.getTime() - now.getTime());
+        setTimeout(function() {
+            window.location.reload(true);
+        }, timeout);
+    })(6, 0, 0);
 
 
 });

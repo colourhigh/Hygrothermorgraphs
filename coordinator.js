@@ -42,30 +42,34 @@ $(document).on('ready', function() {
 
     }
     var ip = $('#ip');
+
     $('#save').on('click', function() {
 
-        var data = $('.entry').map(function() {
-            var $this = $(this);
-
-            return {
-                ip: ip.val(),
-                date: $(this).attr('data-date'),
-                start: $(this).find('select:first').val(),
-                end: $(this).find('select:last').val(),
-                values: $this.find('textarea').map(function() {
-                    return $(this).val();
-                }).toArray()
-            }
-        }).toArray();
+        var data = {
+            'ip': ip.val(),
+            'entries': $('.entry').map(function() {
+                var $this = $(this);
+                return {
+                    date: $(this).attr('data-date'),
+                    start: $(this).find('select:first').val(),
+                    end: $(this).find('select:last').val(),
+                    values: $this.find('textarea').map(function() {
+                        return $(this).val();
+                    }).toArray()
+                }
+            }).toArray()
+        }
         $.post('/json/schedule', {
             data: JSON.stringify(data)
         });
     });
-
-    $.get('/json/schedule')
+    $.get('/json/schedule/ip')
+        .then(function(data) {
+            ip.val((data || {}).ip || defaultIP);
+        });
+    $.get('/json/schedule/entries')
         .then(function(data) {
             data.forEach(function(d) {
-                ip.val(d.ip || defaultIP);
                 var div = $('div[data-date="' + d.date + '"]');
                 if (d.start) {
                     div.find('select:first').val(d.start);

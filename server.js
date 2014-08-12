@@ -15,11 +15,15 @@ var entrySchema = new mongoose.Schema({
     date: String,
     values: [String],
     start: String,
-    end: String,
+    end: String
+});
+
+var ipSchema = new mongoose.Schema({
     ip: String
 });
 
 var Entry = mongoose.model('Entry', entrySchema);
+var IP = mongoose.model('IP', ipSchema);
 
 mongoose.connect('mongodb://localhost/hygrothermographs');
 var db = mongoose.connection;
@@ -78,13 +82,24 @@ db.once('open', function() {
     });
     router.post('/json/schedule', function(req, res) {
         var results = JSON.parse(req.body.data);
+        IP.find().remove();
         Entry.find().remove();
-        results.forEach(function(p) {
+        var ip = new IP({
+            ip: results.ip
+        });
+        ip.save();
+        results.entries.forEach(function(p) {
             var entry = new Entry(p);
             entry.save();
         });
     });
-    router.get('/json/schedule', function(req, res) {
+    router.get('/json/schedule/ip', function(req, res) {
+        IP.findOne(function(err, ip) {
+            res.json(ip);
+            res.end();
+        });
+    });
+    router.get('/json/schedule/entries', function(req, res) {
         Entry.find(function(err, entries) {
             if (err) return console.error(err);
             res.json(entries);
