@@ -2,6 +2,8 @@ $(document).on('ready', function() {
     "use strict";
 
     var days = 40;
+    var defaultIP = '192.168.1.69';
+
 
     var timeSelect = function() {
         var select = $('<select/>');
@@ -63,7 +65,7 @@ $(document).on('ready', function() {
     $.get('/json/schedule')
         .then(function(data) {
             data.forEach(function(d) {
-                ip.val(d.ip || '10.1.1.50');
+                ip.val(d.ip || defaultIP);
                 var div = $('div[data-date="' + d.date + '"]');
                 if (d.start) {
                     div.find('select:first').val(d.start);

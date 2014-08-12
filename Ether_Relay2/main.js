@@ -233,8 +233,11 @@ $(document).ready(function() {
                     machine.pc = machine.stack.pop();
                     break;
                 case "stop":
+                default:
                     machine.pc = 0;
                     machine.def.resolve();
+
+
             }
         }
     }
@@ -266,6 +269,7 @@ $(document).ready(function() {
                     finished = true;
             }
         }
+        console.log(machine.program)
         return machine;
     }
 
