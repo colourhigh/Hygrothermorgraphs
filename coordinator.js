@@ -44,7 +44,6 @@ $(document).on('ready', function() {
     var ip = $('#ip');
 
     $('#save').on('click', function() {
-
         var data = {
             'ip': ip.val(),
             'entries': $('.entry').map(function() {
@@ -61,8 +60,14 @@ $(document).on('ready', function() {
         }
         $.post('/json/schedule', {
             data: JSON.stringify(data)
-        });
+        })
+            .then(function() {
+                $('.status .saved').finish().show().fadeOut(3000);
+            }, function() {
+                $('.status .error').finish().show().fadeOut(3000);
+            })
     });
+
     $.get('/json/schedule/ip')
         .then(function(data) {
             ip.val((data || {}).ip || defaultIP);

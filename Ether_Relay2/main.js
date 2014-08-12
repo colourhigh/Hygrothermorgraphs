@@ -1,91 +1,46 @@
 $(document).ready(function() {
-
+    var _temp_map;
+    var _alphabet;
     var arduinoIP = '192.168.1.69';
 
-    var temp_map = [
-        [1.0, 0.1, 20],
-        [16.75, 1.2, 4],
-        [25.1, 1, 4],
-        [37.2, 2, 2],
-        [38.7, 3, 4],
-        [44.0, 4, 2]
-    ];
 
-    var alphabet = {
-        A: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp_tween(0, 50, 40);
-                machine.temp(50, 20);
-                machine.temp_tween(50, 0, 40);
-                machine.temp(0, 20);
-                return 'low';
+    if (typeof temp_map === "undefined") {
+        _temp_map = [
+            [1.0, 0.1, 20],
+            [16.75, 1.2, 4],
+            [25.1, 1, 4],
+            [37.2, 2, 2],
+            [38.7, 3, 4],
+            [44.0, 4, 2]
+        ];
+    } else {
+        _temp_map = temp_map;
+    }
+    if (typeof alphabet === 'undefined') {
+        _alphabet = {
+            A: {
+                low: function(machine) {
+                    machine.temp(0, 20);
+                    machine.temp_tween(0, 50, 40);
+                    machine.temp(50, 20);
+                    machine.temp_tween(50, 0, 40);
+                    machine.temp(0, 20);
+                    return 'low';
+                }
             }
-        },
-        H: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 5);
-                machine.temp(35, 50);
-                machine.temp(50, 5);
-                machine.temp(0, 20);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 20);
-                machine.temp(0, 15);
-                machine.temp(35, 50);
-                machine.temp(0, 15);
-                machine.temp(50, 20);
-                return 'high';
-            }
-        },
-        L: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 15);
-                machine.temp(0, 15);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                return 'high';
-            }
-        },
-        // TEST TO DELETE
-        HL: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 5);
-                machine.temp(35, 50);
-                machine.temp(50, 5);
-                machine.temp(0, 20);
-                machine.temp(50, 15);
-                machine.temp(0, 15);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                return 'high';
-            }
-        }
+        };
+    } else {
+        _alphabet = alphabet;
     }
 
 
     function getTemp(temp) {
-        for (var i = 0; i < temp_map.length; i++) {
-            if (temp_map[i][0] > temp) {
-                return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
+        for (var i = 0; i < _temp_map.length; i++) {
+            if (_temp_map[i][0] > temp) {
+                return [_temp_map[Math.max(i - 1, 0)][1], _temp_map[Math.max(i - 1, 0)][2]];
             }
         }
-        return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
+        return [_temp_map[_temp_map.length - 1][1], _temp_map[_temp_map.length - 1][2]];
     }
 
     function getFloat(input) {
@@ -160,8 +115,8 @@ $(document).ready(function() {
             found = false;
             for (var j = word.length; j > i; j--) {
                 var str = word.substring(i, j);
-                if (alphabet[str] && alphabet[str][position]) {
-                    position = alphabet[str][position](this);
+                if (_alphabet[str] && _alphabet[str][position]) {
+                    position = _alphabet[str][position](this);
                     i = j;
                     found = true;
                     break;
@@ -412,10 +367,10 @@ $(document).ready(function() {
                             break;
                         case 'letter':
                             var letter = tokens[1].toUpperCase();
-                            if (!alphabet[letter]) {
+                            if (!_alphabet[letter]) {
                                 throw 'unknown letter';
                             }
-                            (alphabet[letter].low || alphabet[letter].high)(machine);
+                            (_alphabet[letter].low || _alphabet[letter].high)(machine);
                             break;
                         case 'word':
                             machine.process_word(tokens[1])
