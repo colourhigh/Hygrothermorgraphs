@@ -52,17 +52,21 @@ class Spec(object):
 
 class Herald(Spec):
 	host = 'http://www.nzherald.co.nz'
-	filename = 'herald.txt'
+	title_filename = 'herald.txt'
+	body_filename = 'herald_body.txt'
 	links = []
 	selectors = ['h1', 'h3']
-	max = 1000
+	body_selector = '.articleBody p'
+	max =300
 
 class Stuff(Spec):
 	host = 'http://www.stuff.co.nz'
-	filename = 'stuff.txt'
+	title_filename = 'stuff.txt'
+	body_filename = 'stuff_body.txt'
 	links = []
 	selectors = ['h1', 'h2']
-	max = 1000
+	body_selector = '#left_col p'
+	max = 300
 
 class NYTimes(Spec):
 	host = 'http://www.nytimes.com'
@@ -71,11 +75,20 @@ class NYTimes(Spec):
 	links = []
 	selectors = ['h1', 'h2 a']
 	body_selector = '.story-content'
-	max = 1000
+	max = 300
 
+class Guardian(Spec):
+	host = 'http://www.theguardian.com/uk'
+	title_filename = 'guardian.txt'
+	body_filename = 'guardian_body.txt'
+	links = []
+	selectors = ['h1', 'bullet a']
+	body_selector = '#article-body-blocks p'
+	max = 300
 
-#Herald().go()
+#Guardian().go()
+Herald().go()
 
-#Stuff().go()
+Stuff().go()
 
 NYTimes().go()
