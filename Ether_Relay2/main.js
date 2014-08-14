@@ -701,5 +701,10 @@ $(document).ready(function() {
         }, timeout);
     })(6, 0, 0);
 
-
+    var cover = $('<div/>').css({position: 'absolute', width: '100%', height: '100%', left: 0, top: 0,
+     background: 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGklEQVQIW2NkYGD4D8SMQAwGcAY2AbBKDBUAVuYCBQPd34sAAAAASUVORK5CYII=)'}).appendTo('body');
+    var danger = $('<button>Only press in an emergency</button>').css({position: 'absolute', top: '70%', left: '45%', fontSize: '18px'}).appendTo('body').on('click', function(){
+        cover.remove();
+        danger.remove();
+    });
 });
