@@ -227,83 +227,10 @@ $(document).ready(function() {
         console.log(machine.program)
         return machine;
     }
-
-    var outputs = ['s1', 's2', 's3'].map(function(s, machine_index) {
-        var waiting;
-        var machine = new Machine(machine_index);
-
-        function send(state, delay, machine) {
-            if (waiting) waiting.remove();
-            update(state, machine);
-            var nums = [];
-            for (var i = 0; i < machine.source_map[machine.pc]; i++) {
-                nums.push('');
-            }
-            nums.push('here, ' + (state.heat || state.cool) + ': waiting ' + delay.toFixed(2));
-            output.html(nums.join('<br/>'));;
-        }
-
-        function start() {
-            machine.def = $.Deferred();
-            machine.def
-                .then(function() {
-                    output.html('finished');
-                });
-            run(send, machine)
-        }
-
-        function pause(off) {
-            clearTimeout(machine.timeout);
-            if (off) {
-                update({
-                    heat: 'off',
-                    cool: 'off'
-                }, machine);
-            }
-            var nums = [];
-            for (var i = 0; i < machine.source_map[machine.pc]; i++) {
-                nums.push('');
-            }
-            nums.push('here, paused');
-            output.html(nums.join('<br/>'));;
-        }
-
-        function reset() {
-            machine.pc = 0;
-            machine.stack = [];
-            output.html('');
-        }
-
-        function save() {
-            localStorage['commands'] = textarea.val();
-        }
-
-        function load() {
-            pause();
-            reset();
-            textarea.val(localStorage['commands']);
-            inputUpdate();
-        }
-
-        function inputUpdate() {
-            var textLines = textarea.val().trim().split(/\r*\n/).length;
-            textarea.height(textLines * 17 + 40);
-            output.height(textLines * 17 + 40);
-            line_numbers.height(textLines * 17 + 40);
-            var nums = [];
-            for (var i = 0; i < textLines + 1; i++) {
-                nums.push(i + 1);
-            }
-            line_numbers.html(nums.join('<br/>'));
-            pause();
-            parse();
-        }
-
-        function parse() {
-            machine = new Machine(machine_index);
+        function parse(machine_index, lines, output) {
+            var machine = new Machine(machine_index);
             var status = [];
             var funcs = [];
-            var lines = textarea.val().split(/\r*\n/);
             var errored = false;
             lines.forEach(function(line, i) {
                 var start_length = machine.program.length;
@@ -390,13 +317,87 @@ $(document).ready(function() {
                 }
             });
             machine.program.push('stop');
-            output.html(status.join('<br/>'));
+            if(output)
+                output.html(status.join('<br/>'));
             if (!errored) {
-                var duration = formatDuration(simulate(machine.clone()).duration);
+                machine.duration = simulate(machine.clone()).duration;
+                var duration = formatDuration(machine.duration);
                 console.log('Total duration: ', duration);
-                output.append(duration);
+                if(output)
+                    output.append(duration);
             }
+            return machine;
+        }
 
+    var outputs = ['s1', 's2', 's3'].map(function(s, machine_index) {
+        var waiting;
+        var machine = new Machine(machine_index);
+
+        function send(state, delay, machine) {
+            if (waiting) waiting.remove();
+            update(state, machine);
+            var nums = [];
+            for (var i = 0; i < machine.source_map[machine.pc]; i++) {
+                nums.push('');
+            }
+            nums.push('here, ' + (state.heat || state.cool) + ': waiting ' + delay.toFixed(2));
+            output.html(nums.join('<br/>'));;
+        }
+
+        function start() {
+            machine.def = $.Deferred();
+            machine.def
+                .then(function() {
+                    output.html('finished');
+                });
+            run(send, machine)
+        }
+
+        function pause(off) {
+            clearTimeout(machine.timeout);
+            if (off) {
+                update({
+                    heat: 'off',
+                    cool: 'off'
+                }, machine);
+            }
+            var nums = [];
+            for (var i = 0; i < machine.source_map[machine.pc]; i++) {
+                nums.push('');
+            }
+            nums.push('here, paused');
+            output.html(nums.join('<br/>'));;
+        }
+
+        function reset() {
+            machine.pc = 0;
+            machine.stack = [];
+            output.html('');
+        }
+
+        function save() {
+            localStorage['commands'] = textarea.val();
+        }
+
+        function load() {
+            pause();
+            reset();
+            textarea.val(localStorage['commands']);
+            inputUpdate();
+        }
+
+        function inputUpdate() {
+            var textLines = textarea.val().trim().split(/\r*\n/).length;
+            textarea.height(textLines * 17 + 40);
+            output.height(textLines * 17 + 40);
+            line_numbers.height(textLines * 17 + 40);
+            var nums = [];
+            for (var i = 0; i < textLines + 1; i++) {
+                nums.push(i + 1);
+            }
+            line_numbers.html(nums.join('<br/>'));
+            pause();
+            machine = parse(machine_index, textarea.val().split(/\r*\n/), output);
         }
 
         var wrapper = $('<div/>').css({
@@ -656,10 +657,21 @@ $(document).ready(function() {
                     startSelect.val(data[i].start).trigger('change');
                     endSelect.val(data[i].end).trigger('change');
                     data[i].values.forEach(function(v, i) {
+                        //time to get smarter
+
                         var result = v.split(' ').map(function(v) {
-                            return v ? 'word ' + v + '\n' : '';
-                        }).join('');
-                        outputs[i].textarea.val(result).trigger('keyup');
+                            return v ? 'word ' + v  : '';
+                        });
+                        var machine = parse(-1, result);
+                        var total_seconds = (endTime[0]*3600  + endTime[1]*60) - (startTime[0]*3600  + startTime[1]*60);
+                       if(total_seconds > machine.duration){
+                           var cool_time = (total_seconds - machine.duration)/2;
+                        result.unshift('cool ' + cool_time);
+                        result.push('cool ' + cool_time );
+                       }
+
+
+                        outputs[i].textarea.val(result.join('\n')).trigger('keyup');
                     });
 
                 }
