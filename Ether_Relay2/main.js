@@ -1,106 +1,61 @@
 $(document).ready(function() {
+    var _temp_map;
+    var _alphabet;
+    var arduinoIP = '192.168.1.69';
 
-    var arduinoIP = '10.1.1.50';
 
-    var temp_map = [
-        [1.0, 0.1, 20],
-        [16.75, 1.2, 4],
-        [25.1, 1, 4],
-        [37.2, 2, 2],
-        [38.7, 3, 4],
-        [44.0, 4, 2]
-    ];
-
-    var alphabet = {
-        A: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp_tween(0, 50, 40);
-                machine.temp(50, 20);
-                machine.temp_tween(50, 0, 40);
-                machine.temp(0, 20);
-                return 'low';
+    if (typeof temp_map === "undefined") {
+        _temp_map = [
+            [1.0, 0.1, 20],
+            [16.75, 1.2, 4],
+            [25.1, 1, 4],
+            [37.2, 2, 2],
+            [38.7, 3, 4],
+            [44.0, 4, 2]
+        ];
+    } else {
+        _temp_map = temp_map;
+    }
+    if (typeof alphabet === 'undefined') {
+        _alphabet = {
+            A: {
+                low: function(machine) {
+                    machine.temp(0, 20);
+                    machine.temp_tween(0, 50, 40);
+                    machine.temp(50, 20);
+                    machine.temp_tween(50, 0, 40);
+                    machine.temp(0, 20);
+                    return 'low';
+                }
             }
-        },
-        H: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 5);
-                machine.temp(35, 50);
-                machine.temp(50, 5);
-                machine.temp(0, 20);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 20);
-                machine.temp(0, 15);
-                machine.temp(35, 50);
-                machine.temp(0, 15);
-                machine.temp(50, 20);
-                return 'high';
-            }
-        },
-        L: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 15);
-                machine.temp(0, 15);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                return 'high';
-            }
-        },
-        // TEST TO DELETE
-        HL: {
-            low: function(machine) {
-                machine.temp(0, 20);
-                machine.temp(50, 5);
-                machine.temp(35, 50);
-                machine.temp(50, 5);
-                machine.temp(0, 20);
-                machine.temp(50, 15);
-                machine.temp(0, 15);
-                return 'low';
-            },
-            high: function(machine) {
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                machine.temp(50, 2);
-                machine.temp(0, 15);
-                machine.temp(50, 25);
-                return 'high';
-            }
-        }
+        };
+    } else {
+        _alphabet = alphabet;
     }
 
 
-        function getTemp(temp) {
-            for (var i = 0; i < temp_map.length; i++) {
-                if (temp_map[i][0] > temp) {
-                    return [temp_map[Math.max(i - 1, 0)][1], temp_map[Math.max(i - 1, 0)][2]];
-                }
+    function getTemp(temp) {
+        for (var i = 0; i < _temp_map.length; i++) {
+            if (_temp_map[i][0] > temp) {
+                return [_temp_map[Math.max(i - 1, 0)][1], _temp_map[Math.max(i - 1, 0)][2]];
             }
-            return [temp_map[temp_map.length - 1][1], temp_map[temp_map.length - 1][2]];
         }
+        return [_temp_map[_temp_map.length - 1][1], _temp_map[_temp_map.length - 1][2]];
+    }
 
-        function getFloat(input) {
-            var float = parseFloat(input);
-            if (Number.isNaN(float)) {
-                throw 'error, bad number';
-            }
-            return float;
+    function getFloat(input) {
+        var float = parseFloat(input);
+        if (Number.isNaN(float)) {
+            throw 'error, bad number';
         }
+        return float;
+    }
 
-        function formatDuration(seconds) {
-            var hours = parseInt(seconds / 3600, 10);
-            var minutes = parseInt(seconds / 60, 10) % 60;
-            return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
-        }
+    function formatDuration(seconds) {
+        var hours = parseInt(seconds / 3600, 10);
+        var minutes = parseInt(seconds / 60, 10) % 60;
+        return hours + ' hours ' + minutes + ' minutes ' + (seconds % 60).toFixed(1) + ' seconds';
+    }
 
     var Machine = function(machine_index) {
         this.pc = 0;
@@ -151,22 +106,23 @@ $(document).ready(function() {
     };
 
 
-    Machine.prototype.process_word = function(word){
+    Machine.prototype.process_word = function(word) {
         var position = 'low'
         word = word.toUpperCase();
-        var i=0, j, found;
-        while(i<word.length){
+        var i = 0,
+            j, found;
+        while (i < word.length) {
             found = false;
-            for(var j=word.length; j>i;j--){
-                var str = word.substring(i,j);
-                if(alphabet[str] && alphabet[str][position]){
-                    position = alphabet[str][position](this);
-                    i=j;
+            for (var j = word.length; j > i; j--) {
+                var str = word.substring(i, j);
+                if (_alphabet[str] && _alphabet[str][position]) {
+                    position = _alphabet[str][position](this);
+                    i = j;
                     found = true;
                     break;
                 }
             }
-            if(!found){
+            if (!found) {
                 throw 'could not process word';
             }
         }
@@ -177,7 +133,7 @@ $(document).ready(function() {
         var xhr;
         state = state || {};
         state.s = machine.machine_index + 1;
-        xhr = $.get('http://'+arduinoIP+'/ajax', state);
+        xhr = $.get('http://' + arduinoIP + '/ajax', state);
 
         xhr.done(function(data) {
             machine.state = data.state;
@@ -232,8 +188,11 @@ $(document).ready(function() {
                     machine.pc = machine.stack.pop();
                     break;
                 case "stop":
+                default:
                     machine.pc = 0;
                     machine.def.resolve();
+
+
             }
         }
     }
@@ -265,6 +224,7 @@ $(document).ready(function() {
                     finished = true;
             }
         }
+        console.log(machine.program)
         return machine;
     }
 
@@ -407,10 +367,10 @@ $(document).ready(function() {
                             break;
                         case 'letter':
                             var letter = tokens[1].toUpperCase();
-                            if (!alphabet[letter]) {
+                            if (!_alphabet[letter]) {
                                 throw 'unknown letter';
                             }
-                            (alphabet[letter].low || alphabet[letter].high)(machine);
+                            (_alphabet[letter].low || _alphabet[letter].high)(machine);
                             break;
                         case 'word':
                             machine.process_word(tokens[1])
@@ -592,8 +552,6 @@ $(document).ready(function() {
 
         textarea.trigger('keyup')
 
-        update(null, machine);
-
         return {
             start: start,
             pause: pause,
@@ -646,7 +604,7 @@ $(document).ready(function() {
     var ready = false;
     var timerStatus = $('<span/>');
     var ipInput = $('<input/>').val(arduinoIP)
-        .on('keyup', function(){
+        .on('keyup', function() {
             arduinoIP = $(this).val();
         });
     var startTime = [0, 0];
@@ -685,17 +643,21 @@ $(document).ready(function() {
 
     var timerInterval = setInterval(timerUpdate, 1000);
 
-    $.get('/json/schedule')
-        .done(function(data){
-            var date = (new Date()).toLocaleDateString();
-            for(var i=0;i<data.length; i++){
-                if(data[i].date === date){
-                    ipInput.val(data[i].ip).trigger('keyup');
+    $.get('/json/schedule/ip')
+        .done(function(data) {
+            ipInput.val(data.ip).trigger('keyup');
+        })
+    $.get('/json/schedule/entries')
+        .done(function(data) {
+            var d = new Date();
+            var date = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].date === date) {
                     startSelect.val(data[i].start).trigger('change');
                     endSelect.val(data[i].end).trigger('change');
-                    data[i].values.forEach(function(v, i){
-                        var result = v.split(' ').map(function(v){
-                            return v ? 'word '+v +'\n': '';
+                    data[i].values.forEach(function(v, i) {
+                        var result = v.split(' ').map(function(v) {
+                            return v ? 'word ' + v + '\n' : '';
                         }).join('');
                         outputs[i].textarea.val(result).trigger('keyup');
                     });
@@ -703,12 +665,29 @@ $(document).ready(function() {
                 }
             }
         })
-        .always(function(){
-            if(location.search.indexOf('no_auto_start') === -1){
+        .always(function() {
+            if (location.search.indexOf('no_auto_start') === -1) {
                 ready = true;
             }
         });
 
+    (function refreshAt(hours, minutes, seconds) {
+        var now = new Date();
+        var then = new Date();
+
+        if (now.getHours() > hours ||
+            (now.getHours() == hours && now.getMinutes() > minutes) ||
+            now.getHours() == hours && now.getMinutes() == minutes && now.getSeconds() >= seconds) {
+            then.setDate(now.getDate() + 1);
+        }
+        then.setHours(hours);
+        then.setMinutes(minutes);
+        then.setSeconds(seconds);
+        var timeout = (then.getTime() - now.getTime());
+        setTimeout(function() {
+            window.location.reload(true);
+        }, timeout);
+    })(6, 0, 0);
 
 
 });

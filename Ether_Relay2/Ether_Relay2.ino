@@ -240,9 +240,9 @@ void sendBasePage(EthernetClient client){
 void sendAjaxPage(EthernetClient client, int s){
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
-    client.println('Access-Control-Allow-Origin: *');
-    client.println('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    client.println('Access-Control-Allow-Headers: X-Requested-With,content-type');
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
+    client.println("Access-Control-Allow-Headers: X-Requested-With,content-type");
     client.println("Connnection: close");
     client.println("");
     getCurrentTemp(temperature);

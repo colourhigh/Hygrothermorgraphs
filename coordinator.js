@@ -1,7 +1,9 @@
-$(document).on('ready', function(){
-"use strict";
+$(document).on('ready', function() {
+    "use strict";
 
-	var days = 40;
+    var days = 40;
+    var defaultIP = '192.168.1.69';
+
 
     var timeSelect = function() {
         var select = $('<select/>');
@@ -13,61 +15,76 @@ $(document).on('ready', function(){
         return select;
     }
 
-	function generateBlock(date, count){
-		var template = $('<div data-date="'+date.toLocaleDateString()+'" class="entry"><span class="date">'+date.toLocaleDateString()+'</span><div class="times"></div><table><tr></tr><tr></tr></table></div>');
+    var localeDateString = function(d) {
+        return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+    }
+
+    function generateBlock(date, count) {
+        var template = $('<div data-date="' + localeDateString(date) + '" class="entry"><span class="date">' + localeDateString(date) + '</span><div class="times"></div><table><tr></tr><tr></tr></table></div>');
 
         template.find('.times')
-        .append($('<span/>').append('Start Time').append(timeSelect().val('9:0')))
-        .append($('<span/>').append('Finish Time').append(timeSelect().val('17:0')))
+            .append($('<span/>').append('Start Time').append(timeSelect().val('9:0')))
+            .append($('<span/>').append('Finish Time').append(timeSelect().val('17:0')))
 
-		for(var i =0;i <count; i++){
-			template.find('table tr:first').append('<th>Sculpture '+(i+1)+'</td>');
-			template.find('table tr:last').append('<td><textarea></textarea></td>');
-		}
-		return template;
-	}
+        for (var i = 0; i < count; i++) {
+            template.find('table tr:first').append('<th>Sculpture ' + (i + 1) + '</td>');
+            template.find('table tr:last').append('<td><textarea></textarea></td>');
+        }
+        return template;
+    }
 
 
 
-	for(var i=0;i<days;i++){
-		var date = new Date();
-		date.setDate(date.getDate()+i)
-		$('#main').append(generateBlock(date, 3))
+    for (var i = 0; i < days; i++) {
+        var date = new Date();
+        date.setDate(date.getDate() + i)
+        $('#main').append(generateBlock(date, 3))
 
-	}
-	var ip = $('#ip');
-	$('#save').on('click', function(){
+    }
+    var ip = $('#ip');
 
-		var data = $('.entry').map(function(){
-			var $this= $(this);
+    $('#save').on('click', function() {
+        var data = {
+            'ip': ip.val(),
+            'entries': $('.entry').map(function() {
+                var $this = $(this);
+                return {
+                    date: $(this).attr('data-date'),
+                    start: $(this).find('select:first').val(),
+                    end: $(this).find('select:last').val(),
+                    values: $this.find('textarea').map(function() {
+                        return $(this).val();
+                    }).toArray()
+                }
+            }).toArray()
+        }
+        $.post('/json/schedule', {
+            data: JSON.stringify(data)
+        })
+            .then(function() {
+                $('.status .saved').finish().show().fadeOut(3000);
+            }, function() {
+                $('.status .error').finish().show().fadeOut(3000);
+            })
+    });
 
-			return {
-				ip: ip.val(),
-				date: $(this).attr('data-date'),
-				start: $(this).find('select:first').val(),
-				end: $(this).find('select:last').val(),
-				values: $this.find('textarea').map(function(){
-					return $(this).val();
-				}).toArray()
-			}
-		}).toArray();
-		$.post('/json/schedule', {data: JSON.stringify(data)});
-	});
-
-	$.get('/json/schedule')
-		.then(function(data){
-			data.forEach(function(d){
-				ip.val(d.ip || '10.1.1.50');
-				var div = $('div[data-date="'+d.date+'"]');
-				if(d.start){
-					div.find('select:first').val(d.start);
-				}
-				if(d.end){
-					div.find('select:last').val(d.end);
-				}
-				d.values.forEach(function(v, i){
-					div.find('textarea').eq(i).val(v);
-				});
-			});
-		});
+    $.get('/json/schedule/ip')
+        .then(function(data) {
+            ip.val((data || {}).ip || defaultIP);
+        });
+    $.get('/json/schedule/entries')
+        .then(function(data) {
+            data.forEach(function(d) {
+                var div = $('div[data-date="' + d.date + '"]');
+                if (d.start) {
+                    div.find('select:first').val(d.start);
+                }
+                if (d.end) {
+                    div.find('select:last').val(d.end);
+                }
+                d.values.forEach(function(v, i) {
+                    div.find('textarea').eq(i).val(v);
+                });
+            });
+        });
 });
