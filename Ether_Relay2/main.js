@@ -107,7 +107,7 @@ $(document).ready(function() {
 
 
     Machine.prototype.process_word = function(word) {
-        var position = 'low'
+        var position = 'low';
         word = word.toUpperCase();
         var i = 0,
             j, found;
@@ -120,6 +120,18 @@ $(document).ready(function() {
                     i = j;
                     found = true;
                     break;
+                }
+            }
+            if(!found){
+                position = position === 'low' ? 'high': 'low';
+                for (var j = word.length; j > i; j--) {
+                    var str = word.substring(i, j);
+                    if (_alphabet[str] && _alphabet[str][position]) {
+                        position = _alphabet[str][position](this);
+                        i = j;
+                        found = true;
+                        break;
+                    }
                 }
             }
             if (!found) {
