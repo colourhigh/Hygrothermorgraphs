@@ -71,7 +71,6 @@ class Spec(object):
                         self.titles.append(text)
                 for b in soup.select(self.body_selector):
                     text= filter(lambda x: x in string.printable, b.text)
-                    print text
                     self.bodies.append(text)
                 print pos
             except Exception, e:
