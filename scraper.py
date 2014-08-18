@@ -43,7 +43,7 @@ class Spec(object):
     host = ''
     links = []
     selectors = []
-    max = 300
+    max = 500
 
     def __init__(self):
         self.links.append(self.host)
@@ -57,14 +57,15 @@ class Spec(object):
                 res = requests.get(self.links[pos])
                 soup = BeautifulSoup(res.text)
                 count = 0
-                for link in soup.select(self.link_selectors):
-                    href = link.get('href')
-                    if href:
-                        if href.startswith('/'):
-                            href = self.host + href
-                        if href not in self.links and href.startswith(self.host):
-                            self.links.append(href)
-                            count += 1
+                for sel in self.link_selectors:
+                    for link in soup.select(sel):
+                        href = link.get('href')
+                        if href:
+                            if href.startswith('/'):
+                                href = self.host + href
+                            if href not in self.links and href.startswith(self.host):
+                                self.links.append(href)
+                                count += 1
                 for selector in self.selectors:
                     for headline in soup.select(selector):
                         text = filter(lambda x: x in string.printable, headline.text.strip()).replace('\n', ' ')
@@ -125,35 +126,35 @@ class Spec(object):
 class Herald(Spec):
     name = 'Herald'
     host = 'http://www.nzherald.co.nz'
-    link_selectors = 'h2 a, h3 a'
+    link_selectors = ['h2 a', 'h3 a']
     selectors = ['h1', 'h3']
     body_selector = '#articleBody p'
 
 class Stuff(Spec):
     name = 'Stuff.co.nz'
     host = 'http://www.stuff.co.nz'
-    link_selectors = 'h2 a, h3 a'
+    link_selectors = ['h2 a', 'h3 a']
     selectors = ['h1', 'h2']
     body_selector = '#left_col p'
 
 class NYTimes(Spec):
     name = 'NYTimes'
     host = 'http://www.nytimes.com'
-    link_selectors = 'h1 a, h2 a'
+    link_selectors = ['h1 a', 'h2 a']
     selectors = ['h1', 'h2 a']
     body_selector = '.story-content'
 
 class Guardian(Spec):
     name = 'Guardian'
     host = 'http://www.theguardian.com/world'
-    link_selectors = 'h1 a, h3 a'
+    link_selectors = ['h1 a', 'h3 a']
     selectors = ['h1', 'h3 a']
     body_selector = '#article-body-blocks p'
 
 class WashingtonPost(Spec):
     name = 'Washington Post'
     host = 'http://www.washingtonpost.com/'
-    link_selectors = 'h1 a, h2 a, .normal a'
+    link_selectors = ['h1 a', 'h2 a', '.normal a']
     selectors = ['h2']
     body_selector = '#article-body p'
 
