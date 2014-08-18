@@ -9,6 +9,8 @@ import json
 from pymongo import MongoClient
 from random import choice
 import datetime
+import sys
+
 
 client = MongoClient()
 
@@ -146,8 +148,8 @@ class NYTimes(Spec):
 class Guardian(Spec):
     name = 'Guardian'
     host = 'http://www.theguardian.com/world'
-    link_selectors = ['h1 a', 'h3 a']
-    selectors = ['h1', 'h3 a']
+    link_selectors = ['h2 a', 'h3 a']
+    selectors = ['h2', 'h3 a']
     body_selector = '#article-body-blocks p'
 
 class WashingtonPost(Spec):
@@ -158,9 +160,18 @@ class WashingtonPost(Spec):
     body_selector = '#article-body p'
 
 
-Stuff().go()
-Herald().go()
-Guardian().go()
-WashingtonPost().go()
-NYTimes().go()
-
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        spec = {
+            "guardian": Guardian,
+            "stuff": Stuff,
+            "washingtonpost": WashingtonPost,
+            "nytimes": NYTimes,
+            "herald": Herald
+        }[sys.argv[1].lower()]().go()
+    else:
+        Stuff().go()
+        Herald().go()
+        Guardian().go()
+        WashingtonPost().go()
+        NYTimes().go()
