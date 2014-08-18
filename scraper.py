@@ -43,7 +43,7 @@ class Spec(object):
     host = ''
     links = []
     selectors = []
-    max = 1000
+    max = 300
 
     def __init__(self):
         self.links.append(self.host)
@@ -57,7 +57,7 @@ class Spec(object):
                 res = requests.get(self.links[pos])
                 soup = BeautifulSoup(res.text)
                 count = 0
-                for link in soup.find_all('a'):
+                for link in soup.select(self.link_selectors):
                     href = link.get('href')
                     if href:
                         if href.startswith('/'):
@@ -125,37 +125,37 @@ class Spec(object):
 class Herald(Spec):
     name = 'Herald'
     host = 'http://www.nzherald.co.nz'
+    link_selectors = 'h2 a, h3 a'
     selectors = ['h1', 'h3']
     body_selector = '#articleBody p'
-    max =300
 
 class Stuff(Spec):
     name = 'Stuff.co.nz'
     host = 'http://www.stuff.co.nz'
+    link_selectors = 'h2 a, h3 a'
     selectors = ['h1', 'h2']
     body_selector = '#left_col p'
-    max = 300
 
 class NYTimes(Spec):
     name = 'NYTimes'
     host = 'http://www.nytimes.com'
+    link_selectors = 'h1 a, h2 a'
     selectors = ['h1', 'h2 a']
     body_selector = '.story-content'
-    max = 300
 
 class Guardian(Spec):
     name = 'Guardian'
     host = 'http://www.theguardian.com/world'
-    selectors = ['h1', 'bullet a']
+    link_selectors = 'h1 a, h3 a'
+    selectors = ['h1', 'h3 a']
     body_selector = '#article-body-blocks p'
-    max = 300
 
 class WashingtonPost(Spec):
     name = 'Washington Post'
     host = 'http://www.washingtonpost.com/'
+    link_selectors = 'h1 a, h2 a, .normal a'
     selectors = ['h2']
     body_selector = '#article-body p'
-    max = 300
 
 
 WashingtonPost().go()
