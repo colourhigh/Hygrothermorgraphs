@@ -158,9 +158,9 @@ class WashingtonPost(Spec):
     max = 300
 
 
-#WashingtonPost().go()
+WashingtonPost().go()
 Guardian().go()
-#Herald().go()
-#Stuff().go()
-#NYTimes().go()
+Herald().go()
+Stuff().go()
+NYTimes().go()
 
