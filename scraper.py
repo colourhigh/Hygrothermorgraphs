@@ -41,11 +41,11 @@ class Encoder(json.JSONEncoder):
 
 class Spec(object):
     host = ''
-    links = []
     selectors = []
     max = 500
 
     def __init__(self):
+        self.links = []
         self.links.append(self.host)
 
     def go(self):
@@ -80,8 +80,7 @@ class Spec(object):
         self.parse()
 
     def parse(self):
-        text = filter(lambda x: x in string.printable, ' '.join(self.bodies))
-        #blob = TextBlob(text)
+        text =  ' '.join(self.bodies)
         model = defaultdict(get_defaultdict)
         for n in ngrams:
             for words in ngram(nltk.PunktWordTokenizer().tokenize(text), n):
@@ -159,9 +158,9 @@ class WashingtonPost(Spec):
     body_selector = '#article-body p'
 
 
-WashingtonPost().go()
-Guardian().go()
-Herald().go()
 Stuff().go()
+Herald().go()
+Guardian().go()
+WashingtonPost().go()
 NYTimes().go()
 
