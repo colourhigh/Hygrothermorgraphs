@@ -37,11 +37,17 @@ var alphabetSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+var scrapingSchema = new mongoose.Schema({
+    name: String,
+    trigrams: [String],
+    date: Number
+});
 
 var Entry = mongoose.model('Entry', entrySchema);
 var IP = mongoose.model('IP', ipSchema);
 var TempMap = mongoose.model('TempMap', tempMapSchema);
 var Alphabet = mongoose.model('Alphabet', tempMapSchema);
+var Scrapings = mongoose.model('Scrapings', scrapingSchema);
 
 mongoose.connect('mongodb://localhost/hygrothermographs');
 var db = mongoose.connection;
@@ -66,6 +72,10 @@ db.once('open', function() {
         path: 'alphabet.html',
         type: 'text/html'
     }, {
+        url: '/scrapings',
+        path: 'scrapings.html',
+        type: 'text/html'
+    },{
         url: '/main.js',
         path: 'Ether_Relay2/main.js',
         type: 'text/javascript'
@@ -80,6 +90,10 @@ db.once('open', function() {
     }, {
         url: '/tempmap.js',
         path: 'tempmap.js',
+        type: 'text/javascript'
+    }, {
+        url: '/scrapings.js',
+        path: 'scrapings.js',
         type: 'text/javascript'
     }, {
         url: '/main.css',
@@ -214,6 +228,16 @@ db.once('open', function() {
             })
     });
 
+    router.get('/json/scrapings', function(req, res) {
+        Scrapings.find()
+            .sort({
+                'date': 'desc'
+            })
+            .exec(function(err, e) {
+                res.json(e);
+                res.end();
+            })
+    });
 
 });
 

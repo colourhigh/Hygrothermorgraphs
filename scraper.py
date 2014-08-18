@@ -63,7 +63,7 @@ class Spec(object):
                         if href.startswith('/'):
                             href = self.host + href
                         if href not in self.links and href.startswith(self.host):
-                            self.links= [href] + self.links
+                            self.links.append(href)
                             count += 1
                 for selector in self.selectors:
                     for headline in soup.select(selector):
@@ -90,6 +90,8 @@ class Spec(object):
 
 
     def generate(self, model):
+        n = 3
+        max = 45
         results = []
         def expand_model(d):
             result = []
@@ -98,16 +100,18 @@ class Spec(object):
             return result
 
         def random_sentence(n):
-            def sentence(words, tup, max=45):
-                if len(words) > 45 or tup not in model[n]:
+            def sentence(words, tup, max):
+                if len(words) > max or tup not in model[n]:
                     return words
                 rand = choice(expand_model(model[n][tup]))
-                return sentence(words + ' ' + rand, tuple(list(tup[1:]) + [rand]))
+                return sentence(words + ' ' + rand, tuple(list(tup[1:]) + [rand]), max)
             start = choice(model[n].keys())
-            return sentence(' '.join(start), start)
-        for i in range(100):
-            results.append(random_sentence(3))
-        self.save(set(results))
+            return sentence(' '.join(start), start, max)
+
+        if len(model[n].keys()):
+            for i in range(100):
+                results.append(random_sentence(n))
+            self.save(set(results))
 
     def save(self, data):
         post = {
@@ -141,7 +145,7 @@ class NYTimes(Spec):
 
 class Guardian(Spec):
     name = 'Guardian'
-    host = 'http://www.theguardian.com/uk'
+    host = 'http://www.theguardian.com/world'
     selectors = ['h1', 'bullet a']
     body_selector = '#article-body-blocks p'
     max = 300
@@ -154,9 +158,9 @@ class WashingtonPost(Spec):
     max = 300
 
 
-WashingtonPost().go()
+#WashingtonPost().go()
 Guardian().go()
-Herald().go()
-Stuff().go()
-NYTimes().go()
+#Herald().go()
+#Stuff().go()
+#NYTimes().go()
 
