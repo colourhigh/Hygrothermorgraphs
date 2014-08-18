@@ -33,3 +33,7 @@ background-color: #EFEFEF;
 	width: calc(100% - 10px);
 height: 2000px;
 }
+
+.scrapings{
+	text-align:center;
+}

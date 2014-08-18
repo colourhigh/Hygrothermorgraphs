@@ -40,7 +40,7 @@ var alphabetSchema = new mongoose.Schema({
 var scrapingSchema = new mongoose.Schema({
     name: String,
     trigrams: [String],
-    date: Number
+    date: Date
 });
 
 var Entry = mongoose.model('Entry', entrySchema);
