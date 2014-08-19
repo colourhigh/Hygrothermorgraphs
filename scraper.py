@@ -57,7 +57,7 @@ class Spec(object):
         while pos < len(self.links) and pos < self.max:
             try:
                 res = requests.get(self.links[pos])
-                soup = BeautifulSoup(res.text)
+                soup = BeautifulSoup(res.text, 'html.parser')
                 count = 0
                 for sel in self.link_selectors:
                     for link in soup.select(sel):
