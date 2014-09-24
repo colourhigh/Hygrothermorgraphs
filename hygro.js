@@ -103,7 +103,7 @@ db.once('open', function() {
 
     statics.forEach(function(s) {
         router.get(s.url, function(req, res) {
-            fs.readFile(s.path, function(err, data) {
+            fs.readFile(require('path').resolve(__dirname, s.path), function(err, data) {
                 res.writeHead(200, {
                     'Content-Type': s.type,
                     'Content-Length': data.length
